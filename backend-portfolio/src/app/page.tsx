@@ -273,13 +273,14 @@ function Hero() {
         padding:     "80px clamp(20px,4vw,60px) 60px",
         display:     "grid",
         gridTemplate:"1fr / 1fr",
-        alignContent:"center",
+        alignItems:  "center",
         position:    "relative",
         overflow:    "hidden",
       }}
     >
       {/* Top boot line */}
       <div
+        className="hero-boot"
         style={{
           position:    "absolute",
           top:         "60px",
@@ -294,14 +295,7 @@ function Hero() {
       </div>
 
       {/* Main content grid */}
-      <div
-        style={{
-          display:             "grid",
-          gridTemplateColumns: "1fr auto",
-          gap:                 "clamp(20px,4vw,60px)",
-          alignItems:          "start",
-        }}
-      >
+      <div className="hero-grid">
         {/* Left: big headline */}
         <div>
           {/* Top label */}
@@ -322,10 +316,9 @@ function Hero() {
 
           {/* Giant title */}
           <h1
-            className="glitch flicker"
+            className="glitch flicker hero-h1"
             data-text="BACKEND"
             style={{
-              fontSize:    "clamp(72px, 16vw, 200px)",
               fontWeight:  700,
               lineHeight:  0.88,
               color:       "var(--bright)",
@@ -336,8 +329,8 @@ function Hero() {
             BACKEND
           </h1>
           <h1
+            className="hero-h1"
             style={{
-              fontSize:    "clamp(72px, 16vw, 200px)",
               fontWeight:  700,
               lineHeight:  0.88,
               color:       "var(--green)",
@@ -351,12 +344,16 @@ function Hero() {
 
           {/* Tagline */}
           <div
+            className="hero-tagline"
             style={{
               fontSize:    "clamp(11px, 1.4vw, 14px)",
               color:       "var(--text)",
               marginBottom:"40px",
               minHeight:   "24px",
               letterSpacing:"0.02em",
+              maxWidth:    "100%",
+              overflowWrap:"break-word",
+              wordBreak:   "break-word",
             }}
           >
             {tagline.displayed}
@@ -364,7 +361,7 @@ function Hero() {
           </div>
 
           {/* CTA buttons */}
-          <div style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
+          <div className="hero-cta" style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
             <a
               href="#work"
               style={{
@@ -421,9 +418,8 @@ function Hero() {
 
         {/* Right: system stats terminal */}
         <div
-          className="term-window"
+          className="term-window hero-term-panel"
           style={{
-            minWidth:  "260px",
             alignSelf: "center",
             flexShrink:0,
           }}
@@ -434,7 +430,7 @@ function Hero() {
             <div className="term-dot" />
             <span style={{ marginLeft:"4px" }}>sys_info.sh</span>
           </div>
-          <div style={{ padding:"16px 18px", fontSize:"12px", lineHeight:"2" }}>
+          <div className="hero-term-body" style={{ padding:"16px 18px", fontSize:"12px", lineHeight:"2" }}>
             {sysStats.map((s) => (
               <div key={s.label} style={{ display:"flex", gap:"12px" }}>
                 <span style={{ color:"var(--dim)", minWidth:"90px", flexShrink:0 }}>

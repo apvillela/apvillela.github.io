@@ -295,3 +295,92 @@ body::after {
   line-height: 1;
   letter-spacing: -0.02em;
 }
+
+/* ============================================================
+   HERO — RESPONSIVE LAYOUT
+   ============================================================ */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: clamp(20px, 4vw, 60px);
+  align-items: start;
+}
+
+.hero-h1 {
+  font-size: clamp(72px, 16vw, 200px);
+}
+
+.hero-term-panel {
+  min-width: 260px;
+}
+
+@media (max-width: 768px) {
+  /* Stack headline + terminal vertically, tighter gap */
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    /* Critical: allow grid to compress below min-content of children */
+    min-width: 0;
+  }
+
+  /*
+   * CSS Grid quirk: grid items default to min-width: auto (= min-content).
+   * A nowrap tagline forces the column wider than 1fr.
+   * Setting min-width: 0 on every item lets the track enforce the 1fr size.
+   */
+  .hero-grid > div {
+    min-width: 0;
+  }
+
+  /* Terminal fills full width below the headline */
+  .hero-term-panel {
+    min-width: 0;
+    width: 100%;
+    align-self: auto !important;
+  }
+
+  /* Slightly smaller but still dominant type */
+  .hero-h1 {
+    font-size: clamp(52px, 17vw, 100px);
+  }
+
+  /* Tighten spacing between headline and CTA */
+  .hero-h1:last-of-type {
+    margin-bottom: 16px !important;
+  }
+
+  /* Tagline: wrap at spaces, break long tokens if needed */
+  .hero-tagline {
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    text-overflow: clip !important;
+    font-size: 11px !important;
+    margin-bottom: 24px !important;
+  }
+
+  /* Truncate boot line */
+  .hero-boot {
+    max-width: calc(100vw - 40px);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Full-width tap targets for CTA buttons */
+  .hero-cta {
+    flex-direction: column;
+  }
+
+  .hero-cta > a {
+    text-align: center;
+    width: 100%;
+  }
+
+  /* Compact sys_info terminal on mobile */
+  .hero-term-body {
+    padding: 10px 14px !important;
+    font-size: 11px !important;
+    line-height: 1.75 !important;
+  }
+}
