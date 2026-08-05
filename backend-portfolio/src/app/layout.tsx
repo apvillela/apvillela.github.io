@@ -16,7 +16,7 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "APVILLELA // Backend Engineer",
+  title: "Alexandre Villela — Backend Engineer",
   description:
     "Alexandre Villela — Backend systems engineer specialising in distributed systems, high-performance APIs, and cloud infrastructure.",
 };
