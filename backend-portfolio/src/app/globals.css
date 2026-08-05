@@ -251,6 +251,27 @@ button:focus-visible {
   object-fit: contain;
   border: 1px solid var(--rule);
 }
+/* A lone portrait plate runs beside the prose: the mount hugs the still and
+   the text column takes the paper that would otherwise sit empty. */
+.spec-fig--aside .spec-fig-body {
+  display: grid;
+  grid-template-columns: auto minmax(300px, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
+}
+.spec-plate--bare .spec-plate-mount { aspect-ratio: auto; }
+.spec-plate--bare .spec-plate-img { max-height: clamp(300px, 32vw, 470px); }
+.spec-plate-note {
+  font-size: 11px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: var(--faint);
+  max-width: 640px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
 .spec-plate-cap {
   border-top: 1px solid var(--rule);
   padding: 11px clamp(10px, 1.6vw, 18px);
@@ -348,4 +369,7 @@ button:focus-visible {
      eating the whole viewport */
   .spec-plate-mount { aspect-ratio: auto; }
   .spec-plate-img { max-height: 74vh; }
+  /* no room for a side column at this width — the plate goes back on top */
+  .spec-fig--aside .spec-fig-body { grid-template-columns: 1fr; }
+  .spec-plate--bare .spec-plate-img { max-height: 74vh; }
 }

@@ -36,7 +36,7 @@ interface Project {
   description: string;
   tools:       string[];
   media:       Media;
-  status:      "PRODUCTION" | "OPEN SOURCE" | "ARCHIVED" | "WIP";
+  status?:     "PRODUCTION" | "OPEN SOURCE" | "ARCHIVED" | "WIP";
   year:        string;
 }
 
@@ -104,15 +104,14 @@ const PROJECTS: Project[] = [
       "Serverless lead-enrichment pipeline. A TypeScript Lambda validates the incoming lead and queues it to SQS; a Python Lambda then runs a LangChain ReAct agent that pulls comparable accounts out of Pinecone and hands them to a deterministic scorer — the model supplies the reasoning, not the number. Results land in DynamoDB, and the table stream carries them on to BigQuery for the funnel view. Declared end to end in AWS SAM.",
     tools:       ["Python", "TypeScript", "AWS SAM", "Lambda", "SQS", "DynamoDB", "LangChain", "Pinecone", "Gemini", "BigQuery"],
     media:       { kind: "none" },
-    status:      "WIP",
     year:        "2026",
   },
   {
     id:          "04",
     title:       "Promo Bot",
     description:
-      "Always-on watcher for retail price drops. A FastAPI service polls Zara, Cotton On and VTEX storefronts every twenty minutes, diffs each hit against SQLite state and pushes only what is new to Telegram — with quiet hours, so it never wakes you at 3am. Outbound messages queue through Redis with AOF persistence and survive a restart, and every watch tracks its own health: a source that starts failing says so instead of going quietly silent. Ships as a Docker image.",
-    tools:       ["Python", "FastAPI", "APScheduler", "Redis", "SQLite", "Telegram API", "Docker"],
+      "Always-on watcher for retail price drops. Eight watches across Zara, H&M, Under Armour and Cotton On are polled concurrently every twenty minutes and fan out to two Telegram channels. Notifications leave through a Redis Streams queue read by a consumer group: an item only clears the pending list once it is acked, so a process that dies mid-send redelivers on the next boot instead of losing the promo. Each storefront gets its own adapter that normalises the payload before anything downstream sees it, so a retailer reshaping its JSON is contained in one file and never reaches the filter, dedupe or notify layers — and one generic VTEX client already covers two of the four stores, which makes adding a shop a config entry rather than new code. State lives in SQLite, quiet hours keep it from waking you at 3am, and every watch tracks its own health: a source that starts failing reports itself instead of going quietly silent.",
+    tools:       ["Python", "FastAPI", "asyncio", "APScheduler", "Redis Streams", "SQLite", "Telegram API", "Docker"],
     media:       { kind: "none" },
     status:      "PRODUCTION",
     year:        "2026",
@@ -207,6 +206,31 @@ function Shots({ shots, title }: { shots: Shot[]; title: string }) {
   );
 }
 
+/* A lone portrait still is too narrow to carry the full column, so it runs
+   beside the prose instead of stranding empty paper either side of it. */
+function soloPortrait(project: Project): Shot | null {
+  if (project.media.kind !== "shots" || project.media.shots.length !== 1) return null;
+  const shot = project.media.shots[0];
+  return shot.height > shot.width ? shot : null;
+}
+
+function BarePlate({ shot }: { shot: Shot }) {
+  return (
+    <div className="spec-plate spec-plate--bare">
+      <div className="spec-plate-mount">
+        <Image
+          src={shot.src}
+          alt={shot.caption}
+          width={shot.width}
+          height={shot.height}
+          sizes="(max-width: 640px) 100vw, 320px"
+          className="spec-plate-img"
+        />
+      </div>
+    </div>
+  );
+}
+
 function ProjectMedia({ project }: { project: Project }) {
   if (project.media.kind === "shots") {
     return <Shots shots={project.media.shots} title={project.title} />;
@@ -221,7 +245,7 @@ function ProjectMedia({ project }: { project: Project }) {
    PAGE
    ============================================================ */
 
-const STATUS_COLOR: Record<Project["status"], string> = {
+const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
   PRODUCTION:    "var(--blue)",
   "OPEN SOURCE": "var(--ink)",
   ARCHIVED:      "var(--faint)",
@@ -288,25 +312,35 @@ export default function Home() {
             <span className="spec-sec-num">§2</span>
             <h2 className="spec-sec-title">Shipped work</h2>
           </div>
-          {PROJECTS.map((p) => (
-            <figure key={p.id} className="spec-fig reveal">
-              <figcaption className="spec-fig-caption">
-                <span className="spec-fig-num">FIG. {p.id}</span>
-                <span className="spec-fig-title">{p.title}</span>
-                <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
-                  {p.status}
-                </span>
-                <span className="spec-fig-year">{p.year}</span>
-              </figcaption>
-              <ProjectMedia project={p} />
-              <p className="spec-fig-desc">{p.description}</p>
-              <ul className="spec-tools">
-                {p.tools.map((t) => (
-                  <li key={t} className="spec-tool">{t}</li>
-                ))}
-              </ul>
-            </figure>
-          ))}
+          {PROJECTS.map((p) => {
+            const solo = soloPortrait(p);
+            return (
+              <figure key={p.id} className={`spec-fig reveal${solo ? " spec-fig--aside" : ""}`}>
+                <figcaption className="spec-fig-caption">
+                  <span className="spec-fig-num">FIG. {p.id}</span>
+                  <span className="spec-fig-title">{p.title}</span>
+                  {p.status && (
+                    <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
+                      {p.status}
+                    </span>
+                  )}
+                  <span className="spec-fig-year">{p.year}</span>
+                </figcaption>
+                <div className="spec-fig-body">
+                  {solo ? <BarePlate shot={solo} /> : <ProjectMedia project={p} />}
+                  <div>
+                    {solo && <p className="spec-plate-note">{solo.caption}</p>}
+                    <p className="spec-fig-desc">{p.description}</p>
+                    <ul className="spec-tools">
+                      {p.tools.map((t) => (
+                        <li key={t} className="spec-tool">{t}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </figure>
+            );
+          })}
         </section>
 
         {/* §3 Contact */}
