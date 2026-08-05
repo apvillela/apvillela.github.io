@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Archivo, Martian_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Archivo } from "next/font/google";
 import "./globals.css";
 
 const ibmMono = IBM_Plex_Mono({
@@ -12,12 +12,6 @@ const ibmMono = IBM_Plex_Mono({
 const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-archivo",
-  display: "swap",
-});
-
-const martianMono = Martian_Mono({
-  subsets: ["latin"],
-  variable: "--font-martian",
   display: "swap",
 });
 
@@ -35,7 +29,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmMono.variable} ${archivo.variable} ${martianMono.variable}`}
+      className={`${ibmMono.variable} ${archivo.variable}`}
     >
       <body>{children}</body>
     </html>
