@@ -73,7 +73,6 @@ const PROJECTS: Project[] = [
         },
       ],
     },
-    status:      "WIP",
     year:        "2026",
   },
   {
