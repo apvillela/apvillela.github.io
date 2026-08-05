@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Archivo, Martian_Mono } from "next/font/google";
 import "./globals.css";
 
 const ibmMono = IBM_Plex_Mono({
-  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-ibm",
+  display: "swap",
+});
+
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
+  display: "swap",
+});
+
+const martianMono = Martian_Mono({
+  subsets: ["latin"],
+  variable: "--font-martian",
   display: "swap",
 });
 
@@ -21,10 +33,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={ibmMono.variable}>
-      <body style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}>
-        {children}
-      </body>
+    <html
+      lang="en"
+      className={`${ibmMono.variable} ${archivo.variable} ${martianMono.variable}`}
+    >
+      <body>{children}</body>
     </html>
   );
 }
