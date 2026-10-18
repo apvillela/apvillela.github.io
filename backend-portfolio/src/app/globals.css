@@ -53,12 +53,33 @@ button:focus-visible {
   --red:    #B3311F;
   --rule:   #C9C6BB;
   --faint:  #6E6C63;
+  --plate:  #DFDCD3;
 
   min-height: 100dvh;
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-ibm), "Courier New", monospace;
 }
+/* Dark is the same sheet as a blueprint: cyanotype ground, white linework,
+   with the drafting grid showing through */
+[data-theme="dark"] { color-scheme: dark; }
+[data-theme="dark"] .theme-spec {
+  --paper:  #0F1D36;
+  --ink:    #E6EAF2;
+  --blue:   #8DB4FF;
+  --red:    #FF8C78;
+  --rule:   #2B3C5E;
+  --faint:  #8A97B2;
+  --plate:  #142443;
+
+  background-image:
+    linear-gradient(rgba(141, 180, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(141, 180, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+body { background: #E9E7E0; }
+[data-theme="dark"] body { background: #0F1D36; }
+
 .theme-spec ::selection { background: var(--blue); color: var(--paper); }
 
 .spec-frame {
@@ -115,6 +136,9 @@ button:focus-visible {
 .spec-switch button:last-child { border-right: none; }
 .spec-switch button:hover { color: var(--blue); }
 .spec-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.spec-swatch { width: 12px; height: 12px; border: 1px solid currentColor; }
+.spec-swatch--light { background: #E9E7E0; }
+.spec-swatch--dark  { background: #0F1D36; }
 
 .spec-h1 {
   font-family: var(--font-archivo), sans-serif;
@@ -255,7 +279,7 @@ button:focus-visible {
 }
 .spec-plate {
   border: 1px solid var(--ink);
-  background: #DFDCD3;
+  background: var(--plate);
 }
 .spec-plate-mount {
   aspect-ratio: 16 / 9;

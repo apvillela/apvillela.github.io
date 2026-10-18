@@ -8,6 +8,7 @@ import Image from "next/image";
    ============================================================ */
 
 type Lang  = "en" | "pt";
+type Theme = "light" | "dark";
 type T<X>  = Record<Lang, X>;
 
 const ME = {
@@ -213,7 +214,7 @@ const UI = {
     notes: "NOTES", plate: "PL.", shots: "screenshots", engNotes: "engineering notes",
     links: { SRC: "SRC", LIVE: "LIVE" },
     status: { PRODUCTION: "PRODUCTION", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARCHIVED", WIP: "WIP" },
-    language: "Language",
+    language: "Language", theme: "Theme", light: "Paper", dark: "Blueprint",
   },
   pt: {
     identity: "Identidade", work: "Trabalho entregue", contact: "Contato",
@@ -222,7 +223,7 @@ const UI = {
     notes: "NOTAS", plate: "PR.", shots: "capturas de tela", engNotes: "notas de engenharia",
     links: { SRC: "CÓDIGO", LIVE: "NO AR" },
     status: { PRODUCTION: "EM PRODUÇÃO", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARQUIVADO", WIP: "EM ANDAMENTO" },
-    language: "Idioma",
+    language: "Idioma", theme: "Tema", light: "Papel", dark: "Planta",
   },
 };
 
@@ -258,18 +259,31 @@ function store(key: string, value?: string) {
   return null;
 }
 
-function useLang() {
-  const [lang, setLang] = useState<Lang>("en");
+/* The inline script in layout.tsx already put the stored/system choice on
+   <html> before paint; this just mirrors it into React and persists changes. */
+function usePrefs() {
+  const [lang, setLang]   = useState<Lang>("en");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     if (store("lang") === "pt") setLang("pt");
+    if (document.documentElement.dataset.theme === "dark") setTheme("dark");
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
   }, [lang]);
 
-  return { lang, pickLang: (l: Lang) => { setLang(l); store("lang", l); } };
+  return {
+    lang,
+    theme,
+    pickLang: (l: Lang) => { setLang(l); store("lang", l); },
+    pickTheme: (t: Theme) => {
+      setTheme(t);
+      store("theme", t);
+      document.documentElement.dataset.theme = t;
+    },
+  };
 }
 
 function YouTube({ videoId, title }: { videoId: string; title: string }) {
@@ -373,7 +387,7 @@ function Switch<V extends string>({
 }: {
   label: string;
   value: V;
-  options: { value: V; text: string; title?: string }[];
+  options: { value: V; text: React.ReactNode; title?: string }[];
   onPick: (v: V) => void;
 }) {
   return (
@@ -407,7 +421,7 @@ const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
 
 export default function Home() {
   useReveal();
-  const { lang, pickLang } = useLang();
+  const { lang, theme, pickLang, pickTheme } = usePrefs();
   const t = UI[lang];
 
   return (
@@ -428,6 +442,15 @@ export default function Home() {
               options={[
                 { value: "en", text: "EN", title: "English" },
                 { value: "pt", text: "PT", title: "Português (Brasil)" },
+              ]}
+            />
+            <Switch
+              label={t.theme}
+              value={theme}
+              onPick={pickTheme}
+              options={[
+                { value: "light", text: <span className="spec-swatch spec-swatch--light" />, title: t.light },
+                { value: "dark",  text: <span className="spec-swatch spec-swatch--dark" />,  title: t.dark },
               ]}
             />
           </div>
