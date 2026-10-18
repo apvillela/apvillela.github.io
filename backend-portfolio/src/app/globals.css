@@ -26,13 +26,14 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-/* Reveal on scroll */
-.reveal {
+/* Reveal on scroll — hidden state only applies when JS is running (html.js),
+   so the page stays readable without it */
+.js .reveal {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.55s ease, transform 0.55s ease;
 }
-.reveal.in-view {
+.js .reveal.in-view {
   opacity: 1;
   transform: translateY(0);
 }
@@ -92,6 +93,7 @@ button:focus-visible {
   padding: 4px 2px;
 }
 .spec-nav a:hover { color: var(--blue); text-decoration: underline; }
+
 
 .spec-h1 {
   font-family: var(--font-archivo), sans-serif;
@@ -287,7 +289,47 @@ button:focus-visible {
   margin-right: 10px;
 }
 
-.spec-fig-desc { font-size: 13px; line-height: 1.75; max-width: 640px; margin-bottom: 14px; }
+.spec-fig-desc { font-size: 14px; line-height: 1.75; max-width: 640px; margin-bottom: 16px; }
+
+/* Repo / live links sit in the figure caption, set like the status stamp */
+.spec-fig-link {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  color: var(--blue);
+  padding: 3px 9px;
+  border: 1px solid var(--blue);
+}
+.spec-fig-link:hover { background: var(--blue); color: var(--paper); }
+
+/* Drawing-notes block: the decisions behind the figure, numbered like the
+   NOTES column on an engineering sheet */
+.spec-notes {
+  list-style: none;
+  max-width: 640px;
+  margin-bottom: 14px;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+}
+.spec-notes::before {
+  content: "NOTES";
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: var(--faint);
+  margin-bottom: 8px;
+}
+.spec-notes li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 5px 0;
+}
+.spec-note-num { color: var(--blue); font-weight: 600; font-size: 11px; padding-top: 2px; }
 
 /* Parts list for the figure above — same hairline-box idiom as the meta grid */
 .spec-tools {
@@ -331,22 +373,6 @@ button:focus-visible {
 .spec-ref-label { color: var(--faint); font-size: 10px; letter-spacing: 0.2em; min-width: 84px; }
 .spec-ref a { color: var(--ink); text-decoration: none; word-break: break-all; }
 .spec-ref a:hover { color: var(--blue); text-decoration: underline; }
-
-.spec-cta {
-  display: inline-block;
-  margin-top: 32px;
-  background: var(--ink);
-  color: var(--paper);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  padding: 15px 32px;
-  border: 1px solid var(--ink);
-  transition: background 0.15s, color 0.15s;
-}
-.spec-cta:hover { background: var(--blue); border-color: var(--blue); color: var(--paper); }
 
 .spec-footer {
   border-top: 1px solid var(--ink);
