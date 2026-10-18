@@ -31,6 +31,7 @@ interface Shot {
 type Media =
   | { kind: "video"; videoId: string }
   | { kind: "shots"; shots: Shot[] }
+  | { kind: "diagram" }   // drawn inline, see SentinelDiagram
   | { kind: "none" };
 
 interface ProjectLink {
@@ -151,22 +152,26 @@ const PROJECTS: Project[] = [
     id:      "03",
     title:   "Sentinel",
     summary: {
-      en: "Serverless lead-enrichment pipeline on AWS: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
-      pt: "Pipeline serverless de enriquecimento de leads na AWS: um agente de LLM reúne as evidências, um scorer determinístico define a nota.",
+      en: "Serverless lead-enrichment pipeline on AWS, wired into HubSpot: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
+      pt: "Pipeline serverless de enriquecimento de leads na AWS, ligado ao HubSpot: um agente de LLM reúne as evidências, um scorer determinístico define a nota.",
     },
     notes: {
       en: [
-        "The model supplies reasoning, never the score: a ReAct agent pulls comparable accounts from Pinecone and hands them to deterministic scoring.",
-        "Validate → SQS → enrich, with DynamoDB streams carrying results on to BigQuery for the funnel view. The whole stack is declared in AWS SAM.",
+        "The model supplies the reasoning, never the score: the ReAct agent pulls comparable profiles from S3 Vectors, and if its answer disagrees with calculator_tool, the calculator wins.",
+        "A HubSpot webhook, a scheduled reconciliation and a direct POST all land on one SQS queue, and both HubSpot paths share one mapping function, so a lead scores the same however it arrived.",
+        "DynamoDB Streams feed BigQuery and the HubSpot write-back as independent consumers: a CRM outage never blocks analytics.",
+        "No static credentials: GitHub deploys over OIDC and AWS reaches GCP through Workload Identity Federation.",
       ],
       pt: [
-        "O modelo fornece o raciocínio, nunca a nota: um agente ReAct busca contas comparáveis no Pinecone e as entrega ao scoring determinístico.",
-        "Validar → SQS → enriquecer, com DynamoDB Streams levando os resultados ao BigQuery para a visão de funil. A stack inteira é declarada em AWS SAM.",
+        "O modelo fornece o raciocínio, nunca a nota: o agente ReAct busca perfis comparáveis no S3 Vectors e, se a resposta dele discordar do calculator_tool, vale a calculadora.",
+        "Webhook do HubSpot, reconciliação agendada e POST direto caem na mesma fila SQS, e os dois caminhos do HubSpot usam a mesma função de mapeamento, então o lead recebe a mesma nota venha de onde vier.",
+        "O DynamoDB Streams alimenta o BigQuery e o write-back no HubSpot como consumidores independentes: o CRM fora do ar nunca trava o analytics.",
+        "Sem credenciais estáticas: o GitHub faz deploy via OIDC e a AWS acessa o GCP por Workload Identity Federation.",
       ],
     },
-    tools:   ["AWS Lambda", "SQS", "LangChain", "Pinecone"],
+    tools:   ["AWS Lambda", "SQS", "LangChain", "S3 Vectors"],
     links:   [{ kind: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
-    media:   { kind: "none" },
+    media:   { kind: "diagram" },
     year:    "2026",
   },
   {
@@ -189,7 +194,21 @@ const PROJECTS: Project[] = [
       ],
     },
     tools:   ["Python", "Redis Streams", "SQLite", "Docker"],
-    media:   { kind: "none" },
+    media: {
+      kind: "shots",
+      shots: [
+        {
+          src:     "/shots/promobot-telegram.webp",
+          label:   { en: "Telegram", pt: "Telegram" },
+          caption: {
+            en: "The men's Zara channel: each post carries the product photo, the sale price against the original, the discount and the sizes left.",
+            pt: "O canal masculino da Zara: cada post traz a foto do produto, o preço de promoção contra o original, o desconto e os tamanhos que restam.",
+          },
+          width:   552,
+          height:  880,
+        },
+      ],
+    },
     status:  "PRODUCTION",
     year:    "2026",
   },
@@ -463,6 +482,9 @@ function ProjectMedia({ project, lang, t }: { project: Project; lang: Lang; t: C
   if (project.media.kind === "video") {
     return <YouTube videoId={project.media.videoId} title={project.title} />;
   }
+  if (project.media.kind === "diagram") {
+    return <SentinelDiagram lang={lang} />;
+  }
   return null;
 }
 
@@ -489,6 +511,125 @@ function Switch<V extends string>({
           {o.text}
         </button>
       ))}
+    </div>
+  );
+}
+
+/* Sentinel drawn as a schematic sheet: AWS and GCP as dashed boundaries,
+   balloons keyed to the numbered NOTES beside it, and a title block. */
+const DG = {
+  en: {
+    aria: "Sentinel architecture: three ingress paths converge on one SQS queue, an AI enrichment Lambda scores each lead with a RAG tool over S3 Vectors and a deterministic calculator, results land in DynamoDB and stream to BigQuery and back to HubSpot.",
+    crm: "HubSpot CRM", client: "API client", reconcile: "reconcile", visibility: "300 s visibility",
+    after3: "after 3", similar: "similar profiles", query: "query", context: "score · tier · RAG context",
+    writeback: "contact write-back", title: "lead enrichment", sheet: "SHEET 1/1",
+  },
+  pt: {
+    aria: "Arquitetura do Sentinel: três entradas convergem numa fila SQS, uma Lambda de enriquecimento pontua cada lead com uma ferramenta RAG sobre o S3 Vectors e uma calculadora determinística, o resultado vai para o DynamoDB e segue em stream para o BigQuery e de volta ao HubSpot.",
+    crm: "HubSpot CRM", client: "cliente da API", reconcile: "reconciliação", visibility: "visibilidade 300 s",
+    after3: "após 3", similar: "perfis similares", query: "consulta", context: "nota · tier · contexto RAG",
+    writeback: "write-back no contato", title: "enriquecimento de leads", sheet: "FOLHA 1/1",
+  },
+};
+
+function DgBox({ x, y, w, h, title, lines = [], accent }: {
+  x: number; y: number; w: number; h: number; title: string; lines?: string[]; accent?: boolean;
+}) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} className={accent ? "dg-box dg-box--accent" : "dg-box"} />
+      <text x={x + 9} y={y + 16} className="dg-title">{title}</text>
+      {lines.map((l, i) => (
+        <text key={i} x={x + 9} y={y + 29 + i * 12} className="dg-sub">{l}</text>
+      ))}
+    </g>
+  );
+}
+
+function Balloon({ x, y, n }: { x: number; y: number; n: number }) {
+  return (
+    <g>
+      <circle cx={x} cy={y} r={8} className="dg-balloon" />
+      <text x={x} y={y + 3.2} className="dg-balloon-num">{n}</text>
+    </g>
+  );
+}
+
+function SentinelDiagram({ lang }: { lang: Lang }) {
+  const d = DG[lang];
+  return (
+    <div className="spec-diagram">
+      <svg viewBox="0 0 360 640" role="img" aria-label={d.aria}>
+        <defs>
+          <marker id="dg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" className="dg-arrowhead" />
+          </marker>
+        </defs>
+
+        <rect x="0.5" y="0.5" width="359" height="639" className="dg-frame" />
+
+        {/* outside the stack */}
+        <text x="122" y="22" className="dg-ext">{d.crm}</text>
+        <text x="296" y="22" className="dg-ext">{d.client}</text>
+        <path d="M64 40 V31 H180 V40" className="dg-line" />
+        {[64, 180].map((x) => (
+          <path key={x} d={`M${x} 40 V64`} className="dg-line" markerEnd="url(#dg-arrow)" />
+        ))}
+        <path d="M296 28 V64" className="dg-line" markerEnd="url(#dg-arrow)" />
+
+        {/* AWS boundary */}
+        <rect x="6" y="48" width="348" height="434" className="dg-zone" />
+        <text x="14" y="476" className="dg-zone-label">AWS · SAM</text>
+
+        <DgBox x={12}  y={66} w={104} h={52} title="webhook λ" lines={["HubSpot", "HMAC v3"]} />
+        <DgBox x={128} y={66} w={104} h={52} title="poll λ"    lines={["EventBridge", d.reconcile]} />
+        <DgBox x={244} y={66} w={104} h={52} title="ingest λ"  lines={["POST /leads", "API key"]} />
+
+        <path d="M64 118 V150 H296 V118 M180 118 V150" className="dg-line" />
+        <path d="M180 150 V170" className="dg-line" markerEnd="url(#dg-arrow)" />
+        <circle cx="180" cy="150" r="2.5" className="dg-node" />
+        <Balloon x={204} y={161} n={2} />
+
+        <DgBox x={100} y={172} w={160} h={44} title="SQS · leads" lines={[d.visibility]} />
+        <path d="M260 194 H298" className="dg-line dg-line--dashed" markerEnd="url(#dg-arrow)" />
+        <text x="279" y="189" className="dg-edge">{d.after3}</text>
+        <DgBox x={300} y={178} w={48} h={32} title="DLQ" lines={["14 d"]} />
+
+        <path d="M180 216 V242" className="dg-line" markerEnd="url(#dg-arrow)" />
+
+        <DgBox x={12} y={244} w={336} h={118} title="AI enrichment λ" lines={["LangChain ReAct · Gemini 2.5 Flash"]} accent />
+        <DgBox x={24}  y={292} w={152} h={56} title="rag_tool"        lines={[d.similar, "cosine · 1024-d"]} />
+        <DgBox x={184} y={292} w={152} h={56} title="calculator_tool" lines={["score 0–100", "VIP · HOT · COLD"]} />
+        <Balloon x={336} y={292} n={1} />
+
+        <path d="M100 348 V372" className="dg-line dg-line--dashed" markerEnd="url(#dg-arrow)" />
+        <text x="106" y="371" className="dg-edge dg-edge--start">{d.query}</text>
+        <DgBox x={24} y={374} w={140} h={34} title="S3 Vectors" lines={["gemini-embedding"]} />
+
+        <path d="M260 362 V424" className="dg-line" markerEnd="url(#dg-arrow)" />
+        <DgBox x={172} y={426} w={176} h={44} title="DynamoDB · leads" lines={[d.context]} />
+
+        <path d="M260 470 V500 M90 500 H260" className="dg-line" />
+        {[90, 260].map((x) => (
+          <path key={x} d={`M${x} 500 V522`} className="dg-line" markerEnd="url(#dg-arrow)" />
+        ))}
+        <circle cx="260" cy="500" r="2.5" className="dg-node" />
+        <text x="252" y="492" className="dg-edge dg-edge--end">streams</text>
+        <Balloon x={282} y={487} n={3} />
+
+        {/* GCP boundary */}
+        <rect x="6" y="514" width="168" height="72" className="dg-zone" />
+        <text x="14" y="581" className="dg-zone-label">GCP</text>
+        <Balloon x={174} y={514} n={4} />
+        <DgBox x={12}  y={524} w={156} h={44} title="BigQuery" lines={["→ Looker Studio"]} />
+        <DgBox x={192} y={524} w={156} h={44} title="HubSpot"  lines={[d.writeback]} />
+
+        {/* title block */}
+        <path d="M6 596 H354 V634 H6 Z M122 596 V634 M282 596 V634" className="dg-titleblock" />
+        <text x="16" y="619" className="dg-tb-name">SENTINEL</text>
+        <text x="132" y="619" className="dg-sub">{d.title}</text>
+        <text x="292" y="619" className="dg-sub">{d.sheet}</text>
+      </svg>
     </div>
   );
 }
@@ -604,8 +745,9 @@ export default function Home() {
           </div>
           {PROJECTS.map((p) => {
             const solo = soloPortrait(p);
+            const aside = solo || p.media.kind === "diagram";
             return (
-              <figure key={p.id} className={`spec-fig reveal${solo ? " spec-fig--aside" : ""}`}>
+              <figure key={p.id} className={`spec-fig reveal${aside ? " spec-fig--aside" : ""}`}>
                 <figcaption className="spec-fig-caption">
                   <span className="spec-fig-num">FIG. {p.id}</span>
                   <span className="spec-fig-title">{p.title}</span>

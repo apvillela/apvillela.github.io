@@ -401,6 +401,32 @@ html:has(.spec-viewer[open]) { overflow: hidden; }
   align-items: start;
 }
 .spec-plate--bare .spec-plate-mount { aspect-ratio: auto; }
+
+/* Inline schematic: every stroke and fill comes from the sheet's tokens, so
+   it redraws itself as a blueprint in the dark theme */
+.spec-diagram { width: clamp(320px, 34vw, 380px); }
+.spec-diagram svg { display: block; width: 100%; height: auto; }
+.dg-frame { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+.dg-zone { fill: none; stroke: var(--faint); stroke-width: 1; stroke-dasharray: 5 3; }
+.dg-zone-label { font-size: 9px; letter-spacing: 0.16em; fill: var(--faint); font-weight: 600; }
+.dg-box { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+.dg-box--accent { fill: var(--plate); stroke: var(--blue); stroke-width: 1.6; }
+.dg-title { font-size: 10.5px; font-weight: 700; fill: var(--ink); }
+.dg-sub { font-size: 9.5px; fill: var(--faint); }
+.dg-ext { font-size: 9.5px; fill: var(--ink); text-anchor: middle; font-weight: 600; }
+.dg-line { fill: none; stroke: var(--ink); stroke-width: 1; }
+.dg-line--dashed { stroke-dasharray: 3 2.5; }
+.dg-arrowhead { fill: var(--ink); }
+.dg-node { fill: var(--ink); }
+.dg-edge { font-size: 8.5px; fill: var(--faint); text-anchor: middle; }
+.dg-edge--start { text-anchor: start; }
+.dg-edge--end { text-anchor: end; }
+.dg-balloon { fill: var(--paper); stroke: var(--blue); stroke-width: 1.2; }
+.dg-balloon-num { font-size: 9px; font-weight: 700; fill: var(--blue); text-anchor: middle; }
+.dg-titleblock { fill: none; stroke: var(--ink); stroke-width: 1; }
+.dg-tb-name { font-family: var(--font-archivo), sans-serif; font-size: 13px; font-weight: 850; fill: var(--ink); letter-spacing: 0.02em; }
+.spec-diagram text { font-family: var(--font-ibm), "Courier New", monospace; }
+.spec-diagram .dg-tb-name { font-family: var(--font-archivo), sans-serif; }
 .spec-plate--bare .spec-plate-img { max-height: clamp(300px, 32vw, 470px); }
 .spec-plate-note {
   font-size: 11px;
@@ -585,4 +611,5 @@ html:has(.spec-viewer[open]) { overflow: hidden; }
   /* no room for a side column at this width — the plate goes back on top */
   .spec-fig--aside .spec-fig-body { grid-template-columns: 1fr; }
   .spec-plate--bare .spec-plate-img { max-height: 74vh; }
+  .spec-diagram { width: 100%; max-width: 440px; }
 }
