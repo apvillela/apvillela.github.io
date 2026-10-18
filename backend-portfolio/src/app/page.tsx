@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 /* ============================================================
@@ -214,6 +214,7 @@ const UI = {
     notes: "NOTES", plate: "PL.", shots: "screenshots", engNotes: "engineering notes",
     links: { SRC: "SRC", LIVE: "LIVE" },
     status: { PRODUCTION: "PRODUCTION", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARCHIVED", WIP: "WIP" },
+    enlarge: "Enlarge screenshot", close: "Close", pan: "Drag to pan",
     language: "Language", theme: "Theme", light: "Paper", dark: "Blueprint",
   },
   pt: {
@@ -223,6 +224,7 @@ const UI = {
     notes: "NOTAS", plate: "PR.", shots: "capturas de tela", engNotes: "notas de engenharia",
     links: { SRC: "CÓDIGO", LIVE: "NO AR" },
     status: { PRODUCTION: "EM PRODUÇÃO", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARQUIVADO", WIP: "EM ANDAMENTO" },
+    enlarge: "Ampliar captura", close: "Fechar", pan: "Arraste para mover",
     language: "Idioma", theme: "Tema", light: "Papel", dark: "Planta",
   },
 };
@@ -251,6 +253,23 @@ function useReveal() {
   }, []);
 }
 
+/* Which section sits under the reading line, for the mobile index strip. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState("");
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [ids]);
+  return active;
+}
+
 function store(key: string, value?: string) {
   try {
     if (value === undefined) return localStorage.getItem(key);
@@ -265,9 +284,13 @@ function usePrefs() {
   const [lang, setLang]   = useState<Lang>("en");
   const [theme, setTheme] = useState<Theme>("light");
 
+  // read after mount on purpose: the static HTML is always EN/light, so reading
+  // storage during render would break hydration
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (store("lang") === "pt") setLang("pt");
     if (document.documentElement.dataset.theme === "dark") setTheme("dark");
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   useEffect(() => {
@@ -282,6 +305,7 @@ function usePrefs() {
       setTheme(t);
       store("theme", t);
       document.documentElement.dataset.theme = t;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0F1D36" : "#E9E7E0");
     },
   };
 }
@@ -306,7 +330,19 @@ const PLATE_LETTERS = ["A", "B", "C", "D", "E", "F"];
    than one, then a mount with a printed margin carrying the caption. */
 function Shots({ shots, title, lang, t }: { shots: Shot[]; title: string; lang: Lang; t: Copy }) {
   const [active, setActive] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const shot = shots[active];
+
+  // a horizontal swipe on the plate turns to the neighbouring one
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touch.current) return;
+    const dx = e.changedTouches[0].clientX - touch.current.x;
+    const dy = e.changedTouches[0].clientY - touch.current.y;
+    touch.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    setActive((i) => Math.min(shots.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1))));
+  };
 
   return (
     <div className="spec-shots">
@@ -320,29 +356,78 @@ function Shots({ shots, title, lang, t }: { shots: Shot[]; title: string; lang: 
               aria-pressed={i === active}
               onClick={() => setActive(i)}
             >
-              {t.plate} {PLATE_LETTERS[i]} · {s.label[lang]}
+              <span className="spec-shot-tab-ref">{t.plate} {PLATE_LETTERS[i]}</span>
+              <span className="spec-shot-tab-label">{s.label[lang]}</span>
             </button>
           ))}
         </div>
       )}
 
       <figure className="spec-plate">
-        <div className="spec-plate-mount">
-          <Image
-            src={shot.src}
-            alt={shot.caption[lang]}
-            width={shot.width}
-            height={shot.height}
-            sizes="(max-width: 640px) 100vw, 1040px"
-            className="spec-plate-img"
-          />
+        <div
+          className="spec-plate-mount"
+          onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+          onTouchEnd={onTouchEnd}
+        >
+          <button type="button" className="spec-plate-zoom" aria-label={t.enlarge} onClick={() => setZoomed(true)}>
+            <Image
+              src={shot.src}
+              alt={shot.caption[lang]}
+              width={shot.width}
+              height={shot.height}
+              sizes="(max-width: 640px) 100vw, 1040px"
+              className="spec-plate-img"
+            />
+          </button>
         </div>
         <figcaption className="spec-plate-cap">
           <span className="spec-plate-ref">{t.plate} {PLATE_LETTERS[active]}</span>
           {shot.caption[lang]}
         </figcaption>
       </figure>
+      {zoomed && <Viewer shot={shot} lang={lang} t={t} onClose={() => setZoomed(false)} />}
     </div>
+  );
+}
+
+/* Full-size plate on its own sheet. On a phone the landscape stills open at
+   their real width so the UI text is readable, and the sheet pans. */
+function Viewer({ shot, lang, t, onClose }: { shot: Shot; lang: Lang; t: Copy; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    d.showModal();
+    const body = d.querySelector<HTMLElement>(".spec-viewer-body");
+    if (body) body.scrollLeft = (body.scrollWidth - body.clientWidth) / 2;
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="spec-viewer"
+      aria-label={shot.caption[lang]}
+      onClose={onClose}
+      onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
+    >
+      <div className="spec-viewer-bar">
+        <span>{shot.label[lang]}</span>
+        <span className="spec-viewer-hint">{t.pan}</span>
+        <button type="button" onClick={() => ref.current?.close()}>{t.close} ✕</button>
+      </div>
+      <div className="spec-viewer-body">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={shot.src}
+          alt={shot.caption[lang]}
+          width={shot.width}
+          height={shot.height}
+          style={{ "--w": `${shot.width}px` } as React.CSSProperties}
+          className={shot.width > shot.height ? "is-wide" : undefined}
+        />
+      </div>
+    </dialog>
   );
 }
 
@@ -419,10 +504,18 @@ const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
   WIP:           "var(--red)",
 };
 
+const SECTION_IDS = ["identity", "work", "contact"];
+
 export default function Home() {
   useReveal();
   const { lang, theme, pickLang, pickTheme } = usePrefs();
   const t = UI[lang];
+  const active = useActiveSection(SECTION_IDS);
+  const sections = [
+    { id: "identity", num: "§1", label: t.navIdentity },
+    { id: "work",     num: "§2", label: t.navWork },
+    { id: "contact",  num: "§3", label: t.navContact },
+  ];
 
   return (
     <div className="theme-spec">
@@ -430,9 +523,11 @@ export default function Home() {
         <div className="spec-nav-inner">
           <span style={{ fontWeight: 700 }}>APV/PORTFOLIO</span>
           <div className="spec-nav-links">
-            <a href="#identity">§1 {t.navIdentity}</a>
-            <a href="#work">§2 {t.navWork}</a>
-            <a href="#contact">§3 {t.navContact}</a>
+            {sections.map((s) => (
+              <a key={s.id} href={`#${s.id}`} aria-current={active === s.id ? "location" : undefined}>
+                {s.num} {s.label}
+              </a>
+            ))}
           </div>
           <div className="spec-nav-controls">
             <Switch
@@ -454,6 +549,13 @@ export default function Home() {
               ]}
             />
           </div>
+        </div>
+        <div className="spec-nav-index">
+          {sections.map((s) => (
+            <a key={s.id} href={`#${s.id}`} aria-current={active === s.id ? "location" : undefined}>
+              <span>{s.num}</span> {s.label}
+            </a>
+          ))}
         </div>
       </nav>
 
@@ -556,13 +658,22 @@ export default function Home() {
               { label: "GITHUB",   href: `https://${ME.github}`,      text: ME.github   },
               { label: "LINKEDIN", href: `https://${ME.linkedin}`,    text: ME.linkedin },
             ].map((ref, i) => (
-              <div key={ref.label} className="spec-ref">
+              <a
+                key={ref.label}
+                className="spec-ref"
+                href={ref.href}
+                target={ref.label === "EMAIL" ? undefined : "_blank"}
+                rel="noreferrer"
+              >
                 <span className="spec-ref-num">[{i + 1}]</span>
                 <span className="spec-ref-label">{ref.label}</span>
-                <a href={ref.href} target={ref.label === "EMAIL" ? undefined : "_blank"} rel="noreferrer">
-                  {ref.text}
-                </a>
-              </div>
+                {/* break long handles at their slashes, never mid-word */}
+                <span className="spec-ref-value">
+                  {ref.text.split("/").map((part, j) => (
+                    <span key={j}>{j > 0 && <>/<wbr /></>}{part}</span>
+                  ))}
+                </span>
+              </a>
             ))}
           </div>
         </section>

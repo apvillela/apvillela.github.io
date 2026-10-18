@@ -33,11 +33,12 @@ export default function RootLayout({
       className={`${ibmMono.variable} ${archivo.variable}`}
     >
       <head>
+        <meta name="theme-color" content="#E9E7E0" />
         {/* reveal-on-scroll only hides content when JS is actually running;
             the theme is set here, before paint, so dark visitors never see a flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var d=document.documentElement;d.classList.add("js");var t;try{t=localStorage.getItem("theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";d.dataset.theme=t})()`,
+            __html: `(function(){var d=document.documentElement;d.classList.add("js");var t;try{t=localStorage.getItem("theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";d.dataset.theme=t;if(t==="dark")document.querySelector('meta[name="theme-color"]').setAttribute("content","#0F1D36")})()`,
           }}
         />
       </head>
