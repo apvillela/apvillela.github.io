@@ -15,10 +15,29 @@ const archivo = Archivo({
   display: "swap",
 });
 
+const DESCRIPTION =
+  "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://apvillela.github.io"),
   title: "Alexandre Villela | Backend Engineer",
-  description:
-    "Alexandre Villela, backend systems engineer specialising in distributed systems, high-performance APIs, and cloud infrastructure.",
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Alexandre Villela",
+    title: "Alexandre Villela | Backend Engineer",
+    description: DESCRIPTION,
+    locale: "en_US",
+    alternateLocale: ["pt_BR"],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Alexandre Villela, Backend Engineer" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Alexandre Villela | Backend Engineer",
+    description: DESCRIPTION,
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
