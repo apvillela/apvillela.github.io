@@ -29,13 +29,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${ibmMono.variable} ${archivo.variable}`}
     >
       <head>
-        {/* reveal-on-scroll only hides content when JS is actually running */}
+        {/* reveal-on-scroll only hides content when JS is actually running;
+            the theme is set here, before paint, so dark visitors never see a flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.documentElement.classList.add("js")`,
+            __html: `(function(){var d=document.documentElement;d.classList.add("js");var t;try{t=localStorage.getItem("theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";d.dataset.theme=t})()`,
           }}
         />
       </head>
