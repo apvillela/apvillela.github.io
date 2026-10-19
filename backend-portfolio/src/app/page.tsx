@@ -30,23 +30,35 @@ type Media =
   | { kind: "shots"; shots: Shot[] }
   | { kind: "none" };
 
+interface ProjectLink {
+  label: string;   // SRC | LIVE
+  href:  string;
+}
+
 interface Project {
-  id:          string;
-  title:       string;
-  description: string;
-  tools:       string[];
-  media:       Media;
-  status?:     "PRODUCTION" | "OPEN SOURCE" | "ARCHIVED" | "WIP";
-  year:        string;
+  id:       string;
+  title:    string;
+  summary:  string;     // one line: what it is, for whom
+  notes:    string[];   // the engineering decisions, drawing-notes style
+  tools:    string[];
+  links?:   ProjectLink[];
+  media:    Media;
+  status?:  "PRODUCTION" | "OPEN SOURCE" | "ARCHIVED" | "WIP";
+  year:     string;
 }
 
 const PROJECTS: Project[] = [
   {
-    id:          "01",
-    title:       "Decifra",
-    description:
-      "WhatsApp and Telegram agent that turns Brazilian public-education editais into plain language. Every claim carries the section it came from — and when the corpus does not cover the question, the agent refuses and hands over the official channel instead of guessing. 24 editais, 265 openings and 69 geolocated campuses indexed in Postgres; recommendations respect both travel distance and the enrolment calendar. Voice notes in Portuguese, Spanish and Haitian Creole get answered in the language they were spoken.",
-    tools:       ["Python", "Google ADK", "Gemini", "FastAPI", "PostgreSQL", "pgvector", "PostGIS", "Docker"],
+    id:      "01",
+    title:   "Decifra",
+    summary:
+      "Conversational agent that reads Brazilian public-education editais and answers over WhatsApp and Telegram — every answer names the document and section it came from.",
+    notes: [
+      "Out-of-corpus questions get a refusal and the institution's official channel, never a guess. The demo wall logs every turn as cited or refused.",
+      "24 editais, 265 openings and 69 campuses indexed in Postgres with pgvector and PostGIS; recommendations weigh travel distance against the enrolment calendar.",
+      "Voice notes in Portuguese, Spanish or Haitian Creole are answered in the language they were spoken.",
+    ],
+    tools:   ["Google ADK", "Gemini", "PostgreSQL", "FastAPI"],
     media: {
       kind: "shots",
       shots: [
@@ -76,11 +88,17 @@ const PROJECTS: Project[] = [
     year:        "2026",
   },
   {
-    id:          "02",
-    title:       "Halos",
-    description:
-      "Community platform for Catholic parishes, live at halos.com.br. Members post from a Mass, a rosary or a study group, and the feed threads reactions and comments inside the community it belongs to. Next.js on Vercel with Firebase underneath: Firestore listeners keep the feed live without polling, Cloud Functions handle fan-out and notifications, and security rules scope every read to the communities a member actually joined. Write paths are rate-limited through Upstash; the whole interface is translated with next-intl.",
-    tools:       ["TypeScript", "Next.js", "Firebase", "Firestore", "Cloud Functions", "Upstash Redis", "next-intl", "Vercel"],
+    id:      "02",
+    title:   "Halos",
+    summary:
+      "Community platform for Catholic parishes — members post from a Mass, a rosary or a study group, and the feed threads it all inside the right community.",
+    notes: [
+      "Feeds stay live through Firestore listeners, not polling; Cloud Functions carry fan-out and notifications.",
+      "Security rules scope every read to the communities a member actually joined.",
+      "Write paths pass through Upstash rate limiting before they touch Firestore.",
+    ],
+    tools:   ["Next.js", "Firebase", "Cloud Functions", "Upstash Redis"],
+    links:   [{ label: "LIVE", href: "https://halos.com.br" }],
     media: {
       kind: "shots",
       shots: [
@@ -97,30 +115,39 @@ const PROJECTS: Project[] = [
     year:        "2026",
   },
   {
-    id:          "03",
-    title:       "Sentinel",
-    description:
-      "Serverless lead-enrichment pipeline. A TypeScript Lambda validates the incoming lead and queues it to SQS; a Python Lambda then runs a LangChain ReAct agent that pulls comparable accounts out of Pinecone and hands them to a deterministic scorer — the model supplies the reasoning, not the number. Results land in DynamoDB, and the table stream carries them on to BigQuery for the funnel view. Declared end to end in AWS SAM.",
-    tools:       ["Python", "TypeScript", "AWS SAM", "Lambda", "SQS", "DynamoDB", "LangChain", "Pinecone", "Gemini", "BigQuery"],
-    media:       { kind: "none" },
-    year:        "2026",
+    id:      "03",
+    title:   "Sentinel",
+    summary:
+      "Serverless lead-enrichment pipeline on AWS: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
+    notes: [
+      "The model supplies reasoning, never the score — a ReAct agent pulls comparable accounts from Pinecone and hands them to deterministic scoring.",
+      "Validate → SQS → enrich, with DynamoDB streams carrying results on to BigQuery for the funnel view. The whole stack is declared in AWS SAM.",
+    ],
+    tools:   ["AWS Lambda", "SQS", "LangChain", "Pinecone"],
+    links:   [{ label: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
+    media:   { kind: "none" },
+    year:    "2026",
   },
   {
-    id:          "04",
-    title:       "Promo Bot",
-    description:
-      "Always-on watcher for retail price drops. Eight watches across Zara, H&M, Under Armour and Cotton On are polled concurrently every twenty minutes and fan out to two Telegram channels. Notifications leave through a Redis Streams queue read by a consumer group: an item only clears the pending list once it is acked, so a process that dies mid-send redelivers on the next boot instead of losing the promo. Each storefront gets its own adapter that normalises the payload before anything downstream sees it, so a retailer reshaping its JSON is contained in one file and never reaches the filter, dedupe or notify layers — and one generic VTEX client already covers two of the four stores, which makes adding a shop a config entry rather than new code. State lives in SQLite, quiet hours keep it from waking you at 3am, and every watch tracks its own health: a source that starts failing reports itself instead of going quietly silent.",
-    tools:       ["Python", "FastAPI", "asyncio", "APScheduler", "Redis Streams", "SQLite", "Telegram API", "Docker"],
-    media:       { kind: "none" },
-    status:      "PRODUCTION",
-    year:        "2026",
+    id:      "04",
+    title:   "Promo Bot",
+    summary:
+      "Always-on watcher over four high-end storefronts, fanning sales out to two Telegram channels.",
+    notes: [
+      "Notifications leave through a Redis Streams consumer group — a process that dies mid-send redelivers on the next boot instead of losing the promo.",
+      "One adapter per storefront normalises the payload, so a retailer reshaping its JSON is a one-file fix that never reaches filtering, dedupe or notify.",
+      "Every watch tracks its own health: a source that starts failing says so instead of going quietly silent.",
+    ],
+    tools:   ["Python", "Redis Streams", "SQLite", "Docker"],
+    media:   { kind: "none" },
+    status:  "PRODUCTION",
+    year:    "2026",
   },
 ];
 
 const ABOUT = [
-  "Backend engineer with 2+ years building systems at scale.",
-  "APIs that don't fall over, pipelines that don't lose data, and infrastructure that only pages you when it matters.",
-  "Ship boring infra. Build exciting products.",
+  "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.",
+  "The common thread is designing around failure: messages that redeliver instead of vanish, agents that cite or refuse instead of guess, sources that report their own degradation.",
 ];
 
 /* ============================================================
@@ -323,13 +350,26 @@ export default function Home() {
                       {p.status}
                     </span>
                   )}
+                  {p.links?.map((l) => (
+                    <a key={l.href} className="spec-fig-link" href={l.href} target="_blank" rel="noreferrer">
+                      {l.label} ↗
+                    </a>
+                  ))}
                   <span className="spec-fig-year">{p.year}</span>
                 </figcaption>
                 <div className="spec-fig-body">
                   {solo ? <BarePlate shot={solo} /> : <ProjectMedia project={p} />}
                   <div>
                     {solo && <p className="spec-plate-note">{solo.caption}</p>}
-                    <p className="spec-fig-desc">{p.description}</p>
+                    <p className="spec-fig-desc">{p.summary}</p>
+                    <ol className="spec-notes" aria-label={`${p.title} — engineering notes`}>
+                      {p.notes.map((n, i) => (
+                        <li key={i}>
+                          <span className="spec-note-num">{i + 1}.</span>
+                          {n}
+                        </li>
+                      ))}
+                    </ol>
                     <ul className="spec-tools">
                       {p.tools.map((t) => (
                         <li key={t} className="spec-tool">{t}</li>
@@ -346,7 +386,7 @@ export default function Home() {
         <section id="contact" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§3</span>
-            <h2 className="spec-sec-title">Correspondence</h2>
+            <h2 className="spec-sec-title">Contact</h2>
           </div>
           <div className="reveal">
             {[
@@ -362,13 +402,10 @@ export default function Home() {
                 </a>
               </div>
             ))}
-            <a className="spec-cta" href={`mailto:${ME.email}?subject=Backend role`}>
-              Open correspondence →
-            </a>
           </div>
         </section>
 
-        <footer className="spec-footer">— End of document · APV—PORTFOLIO · REV. 2026.08 —</footer>
+        <footer className="spec-footer">APV—PORTFOLIO · REV. 2026.08</footer>
       </div>
     </div>
   );

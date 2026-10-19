@@ -31,6 +31,14 @@ export default function RootLayout({
       lang="en"
       className={`${ibmMono.variable} ${archivo.variable}`}
     >
+      <head>
+        {/* reveal-on-scroll only hides content when JS is actually running */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.classList.add("js")`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
