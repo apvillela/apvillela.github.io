@@ -7,10 +7,12 @@ import Image from "next/image";
    DATA
    ============================================================ */
 
+type Lang  = "en" | "pt";
+type T<X>  = Record<Lang, X>;
+
 const ME = {
   handle:   "apvillela",
   name:     "Alexandre Villela",
-  role:     "Backend Engineer",
   email:    "ap.villela10@gmail.com",
   github:   "github.com/apvillela",
   linkedin: "linkedin.com/in/alexandre-pereira-villela",
@@ -18,8 +20,8 @@ const ME = {
 
 interface Shot {
   src:     string;
-  label:   string;   // short name — the thing this shot proves
-  caption: string;
+  label:   T<string>;   // short name, the thing this shot proves
+  caption: T<string>;
   width:   number;
   height:  number;
 }
@@ -31,15 +33,15 @@ type Media =
   | { kind: "none" };
 
 interface ProjectLink {
-  label: string;   // SRC | LIVE
-  href:  string;
+  kind: "SRC" | "LIVE";
+  href: string;
 }
 
 interface Project {
   id:       string;
   title:    string;
-  summary:  string;     // one line: what it is, for whom
-  notes:    string[];   // the engineering decisions, drawing-notes style
+  summary:  T<string>;     // one line: what it is, for whom
+  notes:    T<string[]>;   // the engineering decisions, drawing-notes style
   tools:    string[];
   links?:   ProjectLink[];
   media:    Media;
@@ -51,35 +53,53 @@ const PROJECTS: Project[] = [
   {
     id:      "01",
     title:   "Decifra",
-    summary:
-      "Conversational agent that reads Brazilian public-education editais and answers over WhatsApp and Telegram — every answer names the document and section it came from.",
-    notes: [
-      "Out-of-corpus questions get a refusal and the institution's official channel, never a guess. The demo wall logs every turn as cited or refused.",
-      "24 editais, 265 openings and 69 campuses indexed in Postgres with pgvector and PostGIS; recommendations weigh travel distance against the enrolment calendar.",
-      "Voice notes in Portuguese, Spanish or Haitian Creole are answered in the language they were spoken.",
-    ],
+    summary: {
+      en: "Conversational agent that reads Brazilian public-education editais and answers over WhatsApp and Telegram; every answer names the document and section it came from.",
+      pt: "Agente conversacional que lê editais de educação pública e responde pelo WhatsApp e Telegram; toda resposta indica o documento e a seção de onde veio.",
+    },
+    notes: {
+      en: [
+        "Out-of-corpus questions get a refusal and the institution's official channel, never a guess. The demo wall logs every turn as cited or refused.",
+        "24 editais, 265 openings and 69 campuses indexed in Postgres with pgvector and PostGIS; recommendations weigh travel distance against the enrolment calendar.",
+        "Voice notes in Portuguese, Spanish or Haitian Creole are answered in the language they were spoken.",
+      ],
+      pt: [
+        "Perguntas fora do acervo recebem uma recusa e o canal oficial da instituição, nunca um chute. O painel da demo registra cada turno como citado ou recusado.",
+        "24 editais, 265 vagas e 69 campi indexados no Postgres com pgvector e PostGIS; as recomendações pesam a distância de deslocamento contra o calendário de matrícula.",
+        "Áudios em português, espanhol ou crioulo haitiano são respondidos no idioma em que foram falados.",
+      ],
+    },
     tools:   ["Google ADK", "Gemini", "PostgreSQL", "FastAPI"],
     media: {
       kind: "shots",
       shots: [
         {
           src:     "/shots/decifra-cited.webp",
-          label:   "Cited",
-          caption: "A course question answered from the corpus — the reply names Edital 05/DEING/2024/1 and the annex it read.",
+          label:   { en: "Cited", pt: "Citado" },
+          caption: {
+            en: "A course question answered from the corpus: the reply names Edital 05/DEING/2024/1 and the annex it read.",
+            pt: "Pergunta sobre um curso respondida pelo acervo: a resposta cita o Edital 05/DEING/2024/1 e o anexo consultado.",
+          },
           width:   1280,
           height:  720,
         },
         {
           src:     "/shots/decifra-refused.webp",
-          label:   "Refused",
-          caption: "Asked for a medical course the corpus does not hold, the agent declines and forwards the institution's own portal.",
+          label:   { en: "Refused", pt: "Recusado" },
+          caption: {
+            en: "Asked for a medical course the corpus does not hold, the agent declines and forwards the institution's own portal.",
+            pt: "Perguntado sobre um curso de medicina que o acervo não tem, o agente recusa e encaminha para o portal da própria instituição.",
+          },
           width:   1280,
           height:  720,
         },
         {
           src:     "/shots/decifra-panel.webp",
-          label:   "Provenance",
-          caption: "Live wall for the demo: every turn lands here as answered-with-citation or refused, read straight off the answer log.",
+          label:   { en: "Provenance", pt: "Procedência" },
+          caption: {
+            en: "Live wall for the demo: every turn lands here as answered-with-citation or refused, read straight off the answer log.",
+            pt: "Painel ao vivo da demo: cada turno chega aqui como respondido com citação ou recusado, lido direto do log de respostas.",
+          },
           width:   1760,
           height:  1100,
         },
@@ -90,22 +110,34 @@ const PROJECTS: Project[] = [
   {
     id:      "02",
     title:   "Halos",
-    summary:
-      "Community platform for Catholic parishes — members post from a Mass, a rosary or a study group, and the feed threads it all inside the right community.",
-    notes: [
-      "Feeds stay live through Firestore listeners, not polling; Cloud Functions carry fan-out and notifications.",
-      "Security rules scope every read to the communities a member actually joined.",
-      "Write paths pass through Upstash rate limiting before they touch Firestore.",
-    ],
+    summary: {
+      en: "Community platform for Catholic parishes: members post from a Mass, a rosary or a study group, and the feed threads it all inside the right community.",
+      pt: "Plataforma de comunidade para paróquias católicas: membros postam de uma missa, um terço ou um grupo de estudo, e o feed organiza tudo dentro da comunidade certa.",
+    },
+    notes: {
+      en: [
+        "Feeds stay live through Firestore listeners, not polling; Cloud Functions carry fan-out and notifications.",
+        "Security rules scope every read to the communities a member actually joined.",
+        "Write paths pass through Upstash rate limiting before they touch Firestore.",
+      ],
+      pt: [
+        "Os feeds ficam ao vivo com listeners do Firestore, sem polling; Cloud Functions cuidam do fan-out e das notificações.",
+        "Regras de segurança limitam cada leitura às comunidades em que o membro de fato entrou.",
+        "Escritas passam por rate limiting no Upstash antes de tocar o Firestore.",
+      ],
+    },
     tools:   ["Next.js", "Firebase", "Cloud Functions", "Upstash Redis"],
-    links:   [{ label: "LIVE", href: "https://halos.com.br" }],
+    links:   [{ kind: "LIVE", href: "https://halos.com.br" }],
     media: {
       kind: "shots",
       shots: [
         {
           src:     "/shots/halos-feed.webp",
-          label:   "Feed",
-          caption: "A member's home feed: the community they belong to, then posts from Mass and the rosary with reactions threaded underneath.",
+          label:   { en: "Feed", pt: "Feed" },
+          caption: {
+            en: "A member's home feed: the community they belong to, then posts from Mass and the rosary with reactions threaded underneath.",
+            pt: "O feed inicial de um membro: a comunidade a que pertence, depois posts da missa e do terço com as reações logo abaixo.",
+          },
           width:   535,
           height:  1066,
         },
@@ -117,27 +149,44 @@ const PROJECTS: Project[] = [
   {
     id:      "03",
     title:   "Sentinel",
-    summary:
-      "Serverless lead-enrichment pipeline on AWS: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
-    notes: [
-      "The model supplies reasoning, never the score — a ReAct agent pulls comparable accounts from Pinecone and hands them to deterministic scoring.",
-      "Validate → SQS → enrich, with DynamoDB streams carrying results on to BigQuery for the funnel view. The whole stack is declared in AWS SAM.",
-    ],
+    summary: {
+      en: "Serverless lead-enrichment pipeline on AWS: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
+      pt: "Pipeline serverless de enriquecimento de leads na AWS: um agente de LLM reúne as evidências, um scorer determinístico define a nota.",
+    },
+    notes: {
+      en: [
+        "The model supplies reasoning, never the score: a ReAct agent pulls comparable accounts from Pinecone and hands them to deterministic scoring.",
+        "Validate → SQS → enrich, with DynamoDB streams carrying results on to BigQuery for the funnel view. The whole stack is declared in AWS SAM.",
+      ],
+      pt: [
+        "O modelo fornece o raciocínio, nunca a nota: um agente ReAct busca contas comparáveis no Pinecone e as entrega ao scoring determinístico.",
+        "Validar → SQS → enriquecer, com DynamoDB Streams levando os resultados ao BigQuery para a visão de funil. A stack inteira é declarada em AWS SAM.",
+      ],
+    },
     tools:   ["AWS Lambda", "SQS", "LangChain", "Pinecone"],
-    links:   [{ label: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
+    links:   [{ kind: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
     media:   { kind: "none" },
     year:    "2026",
   },
   {
     id:      "04",
     title:   "Promo Bot",
-    summary:
-      "Always-on watcher over four high-end storefronts, fanning sales out to two Telegram channels.",
-    notes: [
-      "Notifications leave through a Redis Streams consumer group — a process that dies mid-send redelivers on the next boot instead of losing the promo.",
-      "One adapter per storefront normalises the payload, so a retailer reshaping its JSON is a one-file fix that never reaches filtering, dedupe or notify.",
-      "Every watch tracks its own health: a source that starts failing says so instead of going quietly silent.",
-    ],
+    summary: {
+      en: "Always-on watcher over four high-end storefronts, fanning sales out to two Telegram channels.",
+      pt: "Monitor sempre ligado sobre quatro lojas de alto padrão, distribuindo promoções para dois canais do Telegram.",
+    },
+    notes: {
+      en: [
+        "Notifications leave through a Redis Streams consumer group: a process that dies mid-send redelivers on the next boot instead of losing the promo.",
+        "One adapter per storefront normalises the payload, so a retailer reshaping its JSON is a one-file fix that never reaches filtering, dedupe or notify.",
+        "Every watch tracks its own health: a source that starts failing says so instead of going quietly silent.",
+      ],
+      pt: [
+        "As notificações saem por um consumer group do Redis Streams: um processo que morre no meio do envio reentrega no próximo boot em vez de perder a promoção.",
+        "Um adapter por loja normaliza o payload, então uma loja que muda o JSON vira correção de um arquivo só, que nunca chega a filtro, dedupe ou envio.",
+        "Cada monitor acompanha a própria saúde: uma fonte que começa a falhar avisa, em vez de ficar em silêncio.",
+      ],
+    },
     tools:   ["Python", "Redis Streams", "SQLite", "Docker"],
     media:   { kind: "none" },
     status:  "PRODUCTION",
@@ -145,10 +194,39 @@ const PROJECTS: Project[] = [
   },
 ];
 
-const ABOUT = [
-  "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.",
-  "The common thread is designing around failure: messages that redeliver instead of vanish, agents that cite or refuse instead of guess, sources that report their own degradation.",
-];
+const ABOUT: T<string[]> = {
+  en: [
+    "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.",
+    "The common thread is designing around failure: messages that redeliver instead of vanish, agents that cite or refuse instead of guess, sources that report their own degradation.",
+  ],
+  pt: [
+    "Engenheiro backend trabalhando com pipelines assíncronos, infraestrutura serverless e agentes de LLM em produção.",
+    "O fio condutor é projetar em torno da falha: mensagens que são reentregues em vez de sumir, agentes que citam ou recusam em vez de chutar, fontes que reportam a própria degradação.",
+  ],
+};
+
+const UI = {
+  en: {
+    identity: "Identity", work: "Shipped work", contact: "Contact",
+    navIdentity: "IDENTITY", navWork: "WORK", navContact: "CONTACT",
+    role: "ROLE", roleValue: "Backend Engineer", maintainer: "MAINTAINER",
+    notes: "NOTES", plate: "PL.", shots: "screenshots", engNotes: "engineering notes",
+    links: { SRC: "SRC", LIVE: "LIVE" },
+    status: { PRODUCTION: "PRODUCTION", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARCHIVED", WIP: "WIP" },
+    language: "Language",
+  },
+  pt: {
+    identity: "Identidade", work: "Trabalho entregue", contact: "Contato",
+    navIdentity: "IDENTIDADE", navWork: "TRABALHO", navContact: "CONTATO",
+    role: "CARGO", roleValue: "Engenheiro Backend", maintainer: "MANTENEDOR",
+    notes: "NOTAS", plate: "PR.", shots: "capturas de tela", engNotes: "notas de engenharia",
+    links: { SRC: "CÓDIGO", LIVE: "NO AR" },
+    status: { PRODUCTION: "EM PRODUÇÃO", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARQUIVADO", WIP: "EM ANDAMENTO" },
+    language: "Idioma",
+  },
+};
+
+type Copy = (typeof UI)["en"];
 
 /* ============================================================
    HELPERS
@@ -172,6 +250,28 @@ function useReveal() {
   }, []);
 }
 
+function store(key: string, value?: string) {
+  try {
+    if (value === undefined) return localStorage.getItem(key);
+    localStorage.setItem(key, value);
+  } catch {}
+  return null;
+}
+
+function useLang() {
+  const [lang, setLang] = useState<Lang>("en");
+
+  useEffect(() => {
+    if (store("lang") === "pt") setLang("pt");
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+  }, [lang]);
+
+  return { lang, pickLang: (l: Lang) => { setLang(l); store("lang", l); } };
+}
+
 function YouTube({ videoId, title }: { videoId: string; title: string }) {
   return (
     <div className="spec-video">
@@ -190,14 +290,14 @@ const PLATE_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 /* Stills tipped into the document as plates: an index strip when there is more
    than one, then a mount with a printed margin carrying the caption. */
-function Shots({ shots, title }: { shots: Shot[]; title: string }) {
+function Shots({ shots, title, lang, t }: { shots: Shot[]; title: string; lang: Lang; t: Copy }) {
   const [active, setActive] = useState(0);
   const shot = shots[active];
 
   return (
     <div className="spec-shots">
       {shots.length > 1 && (
-        <div className="spec-shot-tabs" role="group" aria-label={`${title} — screenshots`}>
+        <div className="spec-shot-tabs" role="group" aria-label={`${title}: ${t.shots}`}>
           {shots.map((s, i) => (
             <button
               key={s.src}
@@ -206,7 +306,7 @@ function Shots({ shots, title }: { shots: Shot[]; title: string }) {
               aria-pressed={i === active}
               onClick={() => setActive(i)}
             >
-              PL. {PLATE_LETTERS[i]} · {s.label}
+              {t.plate} {PLATE_LETTERS[i]} · {s.label[lang]}
             </button>
           ))}
         </div>
@@ -216,7 +316,7 @@ function Shots({ shots, title }: { shots: Shot[]; title: string }) {
         <div className="spec-plate-mount">
           <Image
             src={shot.src}
-            alt={shot.caption}
+            alt={shot.caption[lang]}
             width={shot.width}
             height={shot.height}
             sizes="(max-width: 640px) 100vw, 1040px"
@@ -224,8 +324,8 @@ function Shots({ shots, title }: { shots: Shot[]; title: string }) {
           />
         </div>
         <figcaption className="spec-plate-cap">
-          <span className="spec-plate-ref">PL. {PLATE_LETTERS[active]}</span>
-          {shot.caption}
+          <span className="spec-plate-ref">{t.plate} {PLATE_LETTERS[active]}</span>
+          {shot.caption[lang]}
         </figcaption>
       </figure>
     </div>
@@ -240,13 +340,13 @@ function soloPortrait(project: Project): Shot | null {
   return shot.height > shot.width ? shot : null;
 }
 
-function BarePlate({ shot }: { shot: Shot }) {
+function BarePlate({ shot, lang }: { shot: Shot; lang: Lang }) {
   return (
     <div className="spec-plate spec-plate--bare">
       <div className="spec-plate-mount">
         <Image
           src={shot.src}
-          alt={shot.caption}
+          alt={shot.caption[lang]}
           width={shot.width}
           height={shot.height}
           sizes="(max-width: 640px) 100vw, 320px"
@@ -257,14 +357,41 @@ function BarePlate({ shot }: { shot: Shot }) {
   );
 }
 
-function ProjectMedia({ project }: { project: Project }) {
+function ProjectMedia({ project, lang, t }: { project: Project; lang: Lang; t: Copy }) {
   if (project.media.kind === "shots") {
-    return <Shots shots={project.media.shots} title={project.title} />;
+    return <Shots shots={project.media.shots} title={project.title} lang={lang} t={t} />;
   }
   if (project.media.kind === "video") {
     return <YouTube videoId={project.media.videoId} title={project.title} />;
   }
   return null;
+}
+
+/* Two-position switch set like the meta grid: hairline box, active cell inked. */
+function Switch<V extends string>({
+  label, value, options, onPick,
+}: {
+  label: string;
+  value: V;
+  options: { value: V; text: string; title?: string }[];
+  onPick: (v: V) => void;
+}) {
+  return (
+    <div className="spec-switch" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
+          aria-label={o.title}
+          title={o.title}
+          onClick={() => onPick(o.value)}
+        >
+          {o.text}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 /* ============================================================
@@ -280,18 +407,30 @@ const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
 
 export default function Home() {
   useReveal();
+  const { lang, pickLang } = useLang();
+  const t = UI[lang];
 
   return (
     <div className="theme-spec">
       <nav className="spec-nav">
         <div className="spec-nav-inner">
-          <span style={{ fontWeight: 700 }}>APV—PORTFOLIO</span>
+          <span style={{ fontWeight: 700 }}>APV/PORTFOLIO</span>
           <div className="spec-nav-links">
-            <a href="#identity">§1 IDENTITY</a>
-            <a href="#work">§2 WORK</a>
-            <a href="#contact">§3 CONTACT</a>
+            <a href="#identity">§1 {t.navIdentity}</a>
+            <a href="#work">§2 {t.navWork}</a>
+            <a href="#contact">§3 {t.navContact}</a>
           </div>
-          <span style={{ color: "var(--faint)" }}>REV. 2026.08</span>
+          <div className="spec-nav-controls">
+            <Switch
+              label={t.language}
+              value={lang}
+              onPick={pickLang}
+              options={[
+                { value: "en", text: "EN", title: "English" },
+                { value: "pt", text: "PT", title: "Português (Brasil)" },
+              ]}
+            />
+          </div>
         </div>
       </nav>
 
@@ -307,11 +446,11 @@ export default function Home() {
           <div style={{ margin: "clamp(28px, 4vw, 44px) 0 0" }}>
             <dl className="spec-meta">
               <div>
-                <dt>ROLE</dt>
-                <dd>{ME.role}</dd>
+                <dt>{t.role}</dt>
+                <dd>{t.roleValue}</dd>
               </div>
               <div>
-                <dt>MAINTAINER</dt>
+                <dt>{t.maintainer}</dt>
                 <dd>{ME.handle}</dd>
               </div>
             </dl>
@@ -322,9 +461,9 @@ export default function Home() {
         <section id="identity" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§1</span>
-            <h2 className="spec-sec-title">Identity</h2>
+            <h2 className="spec-sec-title">{t.identity}</h2>
           </div>
-          {ABOUT.map((line, i) => (
+          {ABOUT[lang].map((line, i) => (
             <div key={i} className="spec-clause reveal">
               <span className="spec-clause-num">1.{i + 1}</span>
               <p>{line}</p>
@@ -336,7 +475,7 @@ export default function Home() {
         <section id="work" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§2</span>
-            <h2 className="spec-sec-title">Shipped work</h2>
+            <h2 className="spec-sec-title">{t.work}</h2>
           </div>
           {PROJECTS.map((p) => {
             const solo = soloPortrait(p);
@@ -347,23 +486,23 @@ export default function Home() {
                   <span className="spec-fig-title">{p.title}</span>
                   {p.status && (
                     <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
-                      {p.status}
+                      {t.status[p.status]}
                     </span>
                   )}
                   {p.links?.map((l) => (
                     <a key={l.href} className="spec-fig-link" href={l.href} target="_blank" rel="noreferrer">
-                      {l.label} ↗
+                      {t.links[l.kind]} ↗
                     </a>
                   ))}
                   <span className="spec-fig-year">{p.year}</span>
                 </figcaption>
                 <div className="spec-fig-body">
-                  {solo ? <BarePlate shot={solo} /> : <ProjectMedia project={p} />}
+                  {solo ? <BarePlate shot={solo} lang={lang} /> : <ProjectMedia project={p} lang={lang} t={t} />}
                   <div>
-                    {solo && <p className="spec-plate-note">{solo.caption}</p>}
-                    <p className="spec-fig-desc">{p.summary}</p>
-                    <ol className="spec-notes" aria-label={`${p.title} — engineering notes`}>
-                      {p.notes.map((n, i) => (
+                    {solo && <p className="spec-plate-note">{solo.caption[lang]}</p>}
+                    <p className="spec-fig-desc">{p.summary[lang]}</p>
+                    <ol className="spec-notes" data-label={t.notes} aria-label={`${p.title}: ${t.engNotes}`}>
+                      {p.notes[lang].map((n, i) => (
                         <li key={i}>
                           <span className="spec-note-num">{i + 1}.</span>
                           {n}
@@ -371,8 +510,8 @@ export default function Home() {
                       ))}
                     </ol>
                     <ul className="spec-tools">
-                      {p.tools.map((t) => (
-                        <li key={t} className="spec-tool">{t}</li>
+                      {p.tools.map((tool) => (
+                        <li key={tool} className="spec-tool">{tool}</li>
                       ))}
                     </ul>
                   </div>
@@ -386,7 +525,7 @@ export default function Home() {
         <section id="contact" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§3</span>
-            <h2 className="spec-sec-title">Contact</h2>
+            <h2 className="spec-sec-title">{t.contact}</h2>
           </div>
           <div className="reveal">
             {[
@@ -405,7 +544,7 @@ export default function Home() {
           </div>
         </section>
 
-        <footer className="spec-footer">APV—PORTFOLIO · REV. 2026.08</footer>
+        <footer className="spec-footer">APV/PORTFOLIO · REV. 2026.10</footer>
       </div>
     </div>
   );

@@ -94,6 +94,27 @@ button:focus-visible {
 }
 .spec-nav a:hover { color: var(--blue); text-decoration: underline; }
 
+.spec-nav-controls { display: flex; gap: 8px; }
+.spec-switch { display: flex; border: 1px solid var(--ink); }
+.spec-switch button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--rule);
+  color: var(--faint);
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  min-width: 34px;
+  min-height: 28px;
+  padding: 0 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.spec-switch button:last-child { border-right: none; }
+.spec-switch button:hover { color: var(--blue); }
+.spec-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 
 .spec-h1 {
   font-family: var(--font-archivo), sans-serif;
@@ -313,7 +334,7 @@ button:focus-visible {
   padding-top: 12px;
 }
 .spec-notes::before {
-  content: "NOTES";
+  content: attr(data-label);
   display: block;
   font-size: 9px;
   font-weight: 700;

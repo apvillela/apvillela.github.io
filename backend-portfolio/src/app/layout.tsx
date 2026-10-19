@@ -16,9 +16,9 @@ const archivo = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "Alexandre Villela — Backend Engineer",
+  title: "Alexandre Villela | Backend Engineer",
   description:
-    "Alexandre Villela — Backend systems engineer specialising in distributed systems, high-performance APIs, and cloud infrastructure.",
+    "Alexandre Villela, backend systems engineer specialising in distributed systems, high-performance APIs, and cloud infrastructure.",
 };
 
 export default function RootLayout({
