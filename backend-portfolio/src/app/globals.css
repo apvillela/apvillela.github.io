@@ -19,6 +19,7 @@ body {
 }
 
 a { color: inherit; }
+a, button { -webkit-tap-highlight-color: transparent; }
 
 a:focus-visible,
 button:focus-visible {
@@ -114,6 +115,11 @@ body { background: #E9E7E0; }
   padding: 4px 2px;
 }
 .spec-nav a:hover { color: var(--blue); text-decoration: underline; }
+.spec-nav-links a[aria-current] { color: var(--ink); }
+
+/* Phone-only index strip: the section links the desktop bar can't fit,
+   with the section being read marked from below */
+.spec-nav-index { display: none; }
 
 .spec-nav-controls { display: flex; gap: 8px; }
 .spec-switch { display: flex; border: 1px solid var(--ink); }
@@ -167,6 +173,7 @@ body { background: #E9E7E0; }
 .spec-meta dd { color: var(--ink); font-weight: 600; }
 
 .spec-sec {
+  scroll-margin-top: 56px;
   padding: clamp(52px, 8vw, 88px) 0;
   border-top: 1px solid var(--rule);
 }
@@ -272,6 +279,7 @@ body { background: #E9E7E0; }
   transition: background 0.15s, color 0.15s;
 }
 .spec-shot-tab:last-child { border-right: none; }
+.spec-shot-tab-label::before { content: " · "; }
 .spec-shot-tab:hover { color: var(--blue); }
 .spec-shot-tab[aria-pressed="true"] {
   background: var(--blue);
@@ -286,6 +294,92 @@ body { background: #E9E7E0; }
   display: grid;
   place-items: center;
   padding: clamp(8px, 1.6vw, 18px);
+}
+.spec-plate-zoom {
+  appearance: none;
+  position: relative;
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  line-height: 0;
+  cursor: zoom-in;
+}
+/* touch screens get no hover cue, so the plate carries a small enlarge mark */
+@media (hover: none) {
+  .spec-plate-zoom::after {
+    content: "⤢";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    line-height: 1;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+  }
+}
+
+.spec-viewer {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ibm), "Courier New", monospace;
+}
+.spec-viewer[open] { display: flex; flex-direction: column; }
+html:has(.spec-viewer[open]) { overflow: hidden; }
+.spec-viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 0 0 clamp(16px, 4vw, 48px);
+  border-bottom: 1px solid var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.spec-viewer-hint { display: none; color: var(--faint); font-weight: 400; }
+.spec-viewer-bar > * { white-space: nowrap; }
+.spec-viewer-bar button {
+  appearance: none;
+  margin-left: auto;
+  min-height: 48px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  border: none;
+  border-left: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.spec-viewer-bar button:hover { background: var(--ink); color: var(--paper); }
+.spec-viewer-body {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(16px, 3vw, 32px);
+}
+.spec-viewer-body img {
+  display: block;
+  margin: auto;
+  max-width: 100%;
+  max-height: calc(100dvh - 120px);
+  width: auto;
+  height: auto;
+  border: 1px solid var(--rule);
 }
 /* the element box hugs the image, so the printed edge lands on the image
    itself — portrait plates included. The height cap keeps a tall phone still
@@ -406,6 +500,8 @@ body { background: #E9E7E0; }
 }
 
 .spec-ref {
+  color: var(--ink);
+  text-decoration: none;
   display: flex;
   gap: 18px;
   align-items: baseline;
@@ -416,8 +512,9 @@ body { background: #E9E7E0; }
 .spec-ref:first-of-type { border-top: 1px solid var(--ink); }
 .spec-ref-num { color: var(--blue); font-weight: 700; font-size: 12px; }
 .spec-ref-label { color: var(--faint); font-size: 10px; letter-spacing: 0.2em; min-width: 84px; }
-.spec-ref a { color: var(--ink); text-decoration: none; word-break: break-all; }
-.spec-ref a:hover { color: var(--blue); text-decoration: underline; }
+.spec-ref-value { overflow-wrap: anywhere; }
+.spec-ref-value > span { white-space: nowrap; }
+.spec-ref:hover .spec-ref-value { color: var(--blue); text-decoration: underline; }
 
 .spec-footer {
   border-top: 1px solid var(--ink);
@@ -431,11 +528,56 @@ body { background: #E9E7E0; }
 
 @media (max-width: 640px) {
   .spec-clause { grid-template-columns: 40px 1fr; }
-  .spec-fig-year { margin-left: 0; width: 100%; }
   .spec-nav-links { display: none; }
-  /* the plate index reads as stacked rows once it can't sit on one line */
-  .spec-shot-tab { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--rule); }
-  .spec-shot-tab:last-child { border-bottom: none; }
+  .spec-nav-inner { padding-block: 10px; }
+  .spec-switch button { min-width: 40px; min-height: 36px; }
+  .spec-nav-index {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--rule);
+  }
+  .spec-nav .spec-nav-index a {
+    padding: 11px 4px 10px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    border-right: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  .spec-nav .spec-nav-index a:last-child { border-right: none; }
+  .spec-nav-index a span { color: var(--blue); font-weight: 700; }
+  .spec-nav .spec-nav-index a[aria-current] {
+    color: var(--ink);
+    text-decoration: none;
+    box-shadow: inset 0 -2px 0 var(--blue);
+  }
+  .spec-sec { scroll-margin-top: 100px; padding: 44px 0; }
+  .spec-sec-head { margin-bottom: 24px; }
+  .spec-fig { margin-bottom: 48px; }
+  .spec-fig:last-child { margin-bottom: 0; }
+  .spec-fig-caption { gap: 10px; }
+  .spec-fig-link { padding: 7px 12px; }
+  /* the plate index stays one row: three short cells, letter over name */
+  .spec-shot-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 8px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    min-height: 48px;
+  }
+  .spec-shot-tab-label { overflow: hidden; text-overflow: ellipsis; }
+  .spec-shot-tab-label::before { content: none; }
+  .spec-viewer-hint { display: inline; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.08em; }
+  .spec-viewer-bar { gap: 10px; }
+  .spec-viewer-bar > span:first-child { display: none; }
+  .spec-viewer-body img.is-wide { max-width: none; max-height: none; width: min(var(--w), 1100px); }
+  /* contact rows: number and label on one line, the address under them */
+  .spec-ref { flex-wrap: wrap; gap: 6px 14px; padding: 16px 0; }
+  .spec-ref-value { width: 100%; font-size: 14px; }
   /* the mount hugs the plate on a phone, and a tall one stops short of
      eating the whole viewport */
   .spec-plate-mount { aspect-ratio: auto; }
