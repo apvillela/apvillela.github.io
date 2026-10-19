@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 /* ============================================================
    DATA
    ============================================================ */
 
+type Lang  = "en" | "pt";
+type Theme = "light" | "dark";
+type T<X>  = Record<Lang, X>;
+
 const ME = {
   handle:   "apvillela",
   name:     "Alexandre Villela",
-  role:     "Backend Engineer",
   email:    "ap.villela10@gmail.com",
   github:   "github.com/apvillela",
   linkedin: "linkedin.com/in/alexandre-pereira-villela",
@@ -18,8 +21,8 @@ const ME = {
 
 interface Shot {
   src:     string;
-  label:   string;   // short name — the thing this shot proves
-  caption: string;
+  label:   T<string>;   // short name, the thing this shot proves
+  caption: T<string>;
   width:   number;
   height:  number;
 }
@@ -28,18 +31,19 @@ interface Shot {
 type Media =
   | { kind: "video"; videoId: string }
   | { kind: "shots"; shots: Shot[] }
+  | { kind: "diagram" }   // drawn inline, see SentinelDiagram
   | { kind: "none" };
 
 interface ProjectLink {
-  label: string;   // SRC | LIVE
-  href:  string;
+  kind: "SRC" | "LIVE";
+  href: string;
 }
 
 interface Project {
   id:       string;
   title:    string;
-  summary:  string;     // one line: what it is, for whom
-  notes:    string[];   // the engineering decisions, drawing-notes style
+  summary:  T<string>;     // one line: what it is, for whom
+  notes:    T<string[]>;   // the engineering decisions, drawing-notes style
   tools:    string[];
   links?:   ProjectLink[];
   media:    Media;
@@ -51,35 +55,53 @@ const PROJECTS: Project[] = [
   {
     id:      "01",
     title:   "Decifra",
-    summary:
-      "Conversational agent that reads Brazilian public-education editais and answers over WhatsApp and Telegram — every answer names the document and section it came from.",
-    notes: [
-      "Out-of-corpus questions get a refusal and the institution's official channel, never a guess. The demo wall logs every turn as cited or refused.",
-      "24 editais, 265 openings and 69 campuses indexed in Postgres with pgvector and PostGIS; recommendations weigh travel distance against the enrolment calendar.",
-      "Voice notes in Portuguese, Spanish or Haitian Creole are answered in the language they were spoken.",
-    ],
+    summary: {
+      en: "Conversational agent that reads Brazilian public-education editais and answers over WhatsApp and Telegram; every answer names the document and section it came from.",
+      pt: "Agente conversacional que lê editais de educação pública e responde pelo WhatsApp e Telegram; toda resposta indica o documento e a seção de onde veio.",
+    },
+    notes: {
+      en: [
+        "Out-of-corpus questions get a refusal and the institution's official channel, never a guess. The demo wall logs every turn as cited or refused.",
+        "24 editais, 265 openings and 69 campuses indexed in Postgres with pgvector and PostGIS; recommendations weigh travel distance against the enrolment calendar.",
+        "Voice notes in Portuguese, Spanish or Haitian Creole are answered in the language they were spoken.",
+      ],
+      pt: [
+        "Perguntas fora do acervo recebem uma recusa e o canal oficial da instituição, nunca um chute. O painel da demo registra cada turno como citado ou recusado.",
+        "24 editais, 265 vagas e 69 campi indexados no Postgres com pgvector e PostGIS; as recomendações pesam a distância de deslocamento contra o calendário de matrícula.",
+        "Áudios em português, espanhol ou crioulo haitiano são respondidos no idioma em que foram falados.",
+      ],
+    },
     tools:   ["Google ADK", "Gemini", "PostgreSQL", "FastAPI"],
     media: {
       kind: "shots",
       shots: [
         {
           src:     "/shots/decifra-cited.webp",
-          label:   "Cited",
-          caption: "A course question answered from the corpus — the reply names Edital 05/DEING/2024/1 and the annex it read.",
+          label:   { en: "Cited", pt: "Citado" },
+          caption: {
+            en: "A course question answered from the corpus: the reply names Edital 05/DEING/2024/1 and the annex it read.",
+            pt: "Pergunta sobre um curso respondida pelo acervo: a resposta cita o Edital 05/DEING/2024/1 e o anexo consultado.",
+          },
           width:   1280,
           height:  720,
         },
         {
           src:     "/shots/decifra-refused.webp",
-          label:   "Refused",
-          caption: "Asked for a medical course the corpus does not hold, the agent declines and forwards the institution's own portal.",
+          label:   { en: "Refused", pt: "Recusado" },
+          caption: {
+            en: "Asked for a medical course the corpus does not hold, the agent declines and forwards the institution's own portal.",
+            pt: "Perguntado sobre um curso de medicina que o acervo não tem, o agente recusa e encaminha para o portal da própria instituição.",
+          },
           width:   1280,
           height:  720,
         },
         {
           src:     "/shots/decifra-panel.webp",
-          label:   "Provenance",
-          caption: "Live wall for the demo: every turn lands here as answered-with-citation or refused, read straight off the answer log.",
+          label:   { en: "Provenance", pt: "Procedência" },
+          caption: {
+            en: "Live wall for the demo: every turn lands here as answered-with-citation or refused, read straight off the answer log.",
+            pt: "Painel ao vivo da demo: cada turno chega aqui como respondido com citação ou recusado, lido direto do log de respostas.",
+          },
           width:   1760,
           height:  1100,
         },
@@ -90,22 +112,34 @@ const PROJECTS: Project[] = [
   {
     id:      "02",
     title:   "Halos",
-    summary:
-      "Community platform for Catholic parishes — members post from a Mass, a rosary or a study group, and the feed threads it all inside the right community.",
-    notes: [
-      "Feeds stay live through Firestore listeners, not polling; Cloud Functions carry fan-out and notifications.",
-      "Security rules scope every read to the communities a member actually joined.",
-      "Write paths pass through Upstash rate limiting before they touch Firestore.",
-    ],
+    summary: {
+      en: "Community platform for Catholic parishes: members post from a Mass, a rosary or a study group, and the feed threads it all inside the right community.",
+      pt: "Plataforma de comunidade para paróquias católicas: membros postam de uma missa, um terço ou um grupo de estudo, e o feed organiza tudo dentro da comunidade certa.",
+    },
+    notes: {
+      en: [
+        "Feeds stay live through Firestore listeners, not polling; Cloud Functions carry fan-out and notifications.",
+        "Security rules scope every read to the communities a member actually joined.",
+        "Write paths pass through Upstash rate limiting before they touch Firestore.",
+      ],
+      pt: [
+        "Os feeds ficam ao vivo com listeners do Firestore, sem polling; Cloud Functions cuidam do fan-out e das notificações.",
+        "Regras de segurança limitam cada leitura às comunidades em que o membro de fato entrou.",
+        "Escritas passam por rate limiting no Upstash antes de tocar o Firestore.",
+      ],
+    },
     tools:   ["Next.js", "Firebase", "Cloud Functions", "Upstash Redis"],
-    links:   [{ label: "LIVE", href: "https://halos.com.br" }],
+    links:   [{ kind: "LIVE", href: "https://halos.com.br" }],
     media: {
       kind: "shots",
       shots: [
         {
           src:     "/shots/halos-feed.webp",
-          label:   "Feed",
-          caption: "A member's home feed: the community they belong to, then posts from Mass and the rosary with reactions threaded underneath.",
+          label:   { en: "Feed", pt: "Feed" },
+          caption: {
+            en: "A member's home feed: the community they belong to, then posts from Mass and the rosary with reactions threaded underneath.",
+            pt: "O feed inicial de um membro: a comunidade a que pertence, depois posts da missa e do terço com as reações logo abaixo.",
+          },
           width:   535,
           height:  1066,
         },
@@ -117,38 +151,104 @@ const PROJECTS: Project[] = [
   {
     id:      "03",
     title:   "Sentinel",
-    summary:
-      "Serverless lead-enrichment pipeline on AWS: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
-    notes: [
-      "The model supplies reasoning, never the score — a ReAct agent pulls comparable accounts from Pinecone and hands them to deterministic scoring.",
-      "Validate → SQS → enrich, with DynamoDB streams carrying results on to BigQuery for the funnel view. The whole stack is declared in AWS SAM.",
-    ],
-    tools:   ["AWS Lambda", "SQS", "LangChain", "Pinecone"],
-    links:   [{ label: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
-    media:   { kind: "none" },
+    summary: {
+      en: "Serverless lead-enrichment pipeline on AWS, wired into HubSpot: an LLM agent gathers the evidence, a deterministic scorer sets the number.",
+      pt: "Pipeline serverless de enriquecimento de leads na AWS, ligado ao HubSpot: um agente de LLM reúne as evidências, um scorer determinístico define a nota.",
+    },
+    notes: {
+      en: [
+        "The model supplies the reasoning, never the score: the ReAct agent pulls comparable profiles from S3 Vectors, and if its answer disagrees with calculator_tool, the calculator wins.",
+        "A HubSpot webhook, a scheduled reconciliation and a direct POST all land on one SQS queue, and both HubSpot paths share one mapping function, so a lead scores the same however it arrived.",
+        "DynamoDB Streams feed BigQuery and the HubSpot write-back as independent consumers: a CRM outage never blocks analytics.",
+        "No static credentials: GitHub deploys over OIDC and AWS reaches GCP through Workload Identity Federation.",
+      ],
+      pt: [
+        "O modelo fornece o raciocínio, nunca a nota: o agente ReAct busca perfis comparáveis no S3 Vectors e, se a resposta dele discordar do calculator_tool, vale a calculadora.",
+        "Webhook do HubSpot, reconciliação agendada e POST direto caem na mesma fila SQS, e os dois caminhos do HubSpot usam a mesma função de mapeamento, então o lead recebe a mesma nota venha de onde vier.",
+        "O DynamoDB Streams alimenta o BigQuery e o write-back no HubSpot como consumidores independentes: o CRM fora do ar nunca trava o analytics.",
+        "Sem credenciais estáticas: o GitHub faz deploy via OIDC e a AWS acessa o GCP por Workload Identity Federation.",
+      ],
+    },
+    tools:   ["AWS Lambda", "SQS", "LangChain", "S3 Vectors"],
+    links:   [{ kind: "SRC", href: "https://github.com/apvillela/aws-ai-agent" }],
+    media:   { kind: "diagram" },
     year:    "2026",
   },
   {
     id:      "04",
     title:   "Promo Bot",
-    summary:
-      "Always-on watcher over four high-end storefronts, fanning sales out to two Telegram channels.",
-    notes: [
-      "Notifications leave through a Redis Streams consumer group — a process that dies mid-send redelivers on the next boot instead of losing the promo.",
-      "One adapter per storefront normalises the payload, so a retailer reshaping its JSON is a one-file fix that never reaches filtering, dedupe or notify.",
-      "Every watch tracks its own health: a source that starts failing says so instead of going quietly silent.",
-    ],
+    summary: {
+      en: "Always-on watcher over four high-end storefronts, fanning sales out to two Telegram channels.",
+      pt: "Monitor sempre ligado sobre quatro lojas de alto padrão, distribuindo promoções para dois canais do Telegram.",
+    },
+    notes: {
+      en: [
+        "Notifications leave through a Redis Streams consumer group: a process that dies mid-send redelivers on the next boot instead of losing the promo.",
+        "One adapter per storefront normalises the payload, so a retailer reshaping its JSON is a one-file fix that never reaches filtering, dedupe or notify.",
+        "Every watch tracks its own health: a source that starts failing says so instead of going quietly silent.",
+      ],
+      pt: [
+        "As notificações saem por um consumer group do Redis Streams: um processo que morre no meio do envio reentrega no próximo boot em vez de perder a promoção.",
+        "Um adapter por loja normaliza o payload, então uma loja que muda o JSON vira correção de um arquivo só, que nunca chega a filtro, dedupe ou envio.",
+        "Cada monitor acompanha a própria saúde: uma fonte que começa a falhar avisa, em vez de ficar em silêncio.",
+      ],
+    },
     tools:   ["Python", "Redis Streams", "SQLite", "Docker"],
-    media:   { kind: "none" },
+    media: {
+      kind: "shots",
+      shots: [
+        {
+          src:     "/shots/promobot-telegram.webp",
+          label:   { en: "Telegram", pt: "Telegram" },
+          caption: {
+            en: "The men's Zara channel: each post carries the product photo, the sale price against the original, the discount and the sizes left.",
+            pt: "O canal masculino da Zara: cada post traz a foto do produto, o preço de promoção contra o original, o desconto e os tamanhos que restam.",
+          },
+          width:   552,
+          height:  880,
+        },
+      ],
+    },
     status:  "PRODUCTION",
     year:    "2026",
   },
 ];
 
-const ABOUT = [
-  "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.",
-  "The common thread is designing around failure: messages that redeliver instead of vanish, agents that cite or refuse instead of guess, sources that report their own degradation.",
-];
+const ABOUT: T<string[]> = {
+  en: [
+    "Backend engineer working across async pipelines, serverless infrastructure and LLM agents in production.",
+    "The common thread is designing around failure: messages that redeliver instead of vanish, agents that cite or refuse instead of guess, sources that report their own degradation.",
+  ],
+  pt: [
+    "Engenheiro backend trabalhando com pipelines assíncronos, infraestrutura serverless e agentes de LLM em produção.",
+    "O fio condutor é projetar em torno da falha: mensagens que são reentregues em vez de sumir, agentes que citam ou recusam em vez de chutar, fontes que reportam a própria degradação.",
+  ],
+};
+
+const UI = {
+  en: {
+    identity: "Identity", work: "Shipped work", contact: "Contact",
+    navIdentity: "IDENTITY", navWork: "WORK", navContact: "CONTACT",
+    role: "ROLE", roleValue: "Backend Engineer", maintainer: "MAINTAINER",
+    notes: "NOTES", plate: "PL.", shots: "screenshots", engNotes: "engineering notes",
+    links: { SRC: "SRC", LIVE: "LIVE" },
+    status: { PRODUCTION: "PRODUCTION", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARCHIVED", WIP: "WIP" },
+    enlarge: "Enlarge screenshot", close: "Close", pan: "Drag to pan",
+    language: "Language", theme: "Theme", light: "Paper", dark: "Blueprint",
+  },
+  pt: {
+    identity: "Identidade", work: "Trabalho entregue", contact: "Contato",
+    navIdentity: "IDENTIDADE", navWork: "TRABALHO", navContact: "CONTATO",
+    role: "CARGO", roleValue: "Engenheiro Backend", maintainer: "MANTENEDOR",
+    notes: "NOTAS", plate: "PR.", shots: "capturas de tela", engNotes: "notas de engenharia",
+    links: { SRC: "CÓDIGO", LIVE: "NO AR" },
+    status: { PRODUCTION: "EM PRODUÇÃO", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARQUIVADO", WIP: "EM ANDAMENTO" },
+    enlarge: "Ampliar captura", close: "Fechar", pan: "Arraste para mover",
+    language: "Idioma", theme: "Tema", light: "Papel", dark: "Planta",
+  },
+};
+
+type Copy = (typeof UI)["en"];
 
 /* ============================================================
    HELPERS
@@ -172,6 +272,63 @@ function useReveal() {
   }, []);
 }
 
+/* Which section sits under the reading line, for the mobile index strip. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState("");
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => e.isIntersecting && setActive(e.target.id)),
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [ids]);
+  return active;
+}
+
+function store(key: string, value?: string) {
+  try {
+    if (value === undefined) return localStorage.getItem(key);
+    localStorage.setItem(key, value);
+  } catch {}
+  return null;
+}
+
+/* The inline script in layout.tsx already put the stored/system choice on
+   <html> before paint; this just mirrors it into React and persists changes. */
+function usePrefs() {
+  const [lang, setLang]   = useState<Lang>("en");
+  const [theme, setTheme] = useState<Theme>("light");
+
+  // read after mount on purpose: the static HTML is always EN/light, so reading
+  // storage during render would break hydration
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (store("lang") === "pt") setLang("pt");
+    if (document.documentElement.dataset.theme === "dark") setTheme("dark");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+  }, [lang]);
+
+  return {
+    lang,
+    theme,
+    pickLang: (l: Lang) => { setLang(l); store("lang", l); },
+    pickTheme: (t: Theme) => {
+      setTheme(t);
+      store("theme", t);
+      document.documentElement.dataset.theme = t;
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#0F1D36" : "#E9E7E0");
+    },
+  };
+}
+
 function YouTube({ videoId, title }: { videoId: string; title: string }) {
   return (
     <div className="spec-video">
@@ -190,14 +347,26 @@ const PLATE_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 /* Stills tipped into the document as plates: an index strip when there is more
    than one, then a mount with a printed margin carrying the caption. */
-function Shots({ shots, title }: { shots: Shot[]; title: string }) {
+function Shots({ shots, title, lang, t }: { shots: Shot[]; title: string; lang: Lang; t: Copy }) {
   const [active, setActive] = useState(0);
+  const [zoomed, setZoomed] = useState(false);
+  const touch = useRef<{ x: number; y: number } | null>(null);
   const shot = shots[active];
+
+  // a horizontal swipe on the plate turns to the neighbouring one
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touch.current) return;
+    const dx = e.changedTouches[0].clientX - touch.current.x;
+    const dy = e.changedTouches[0].clientY - touch.current.y;
+    touch.current = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    setActive((i) => Math.min(shots.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1))));
+  };
 
   return (
     <div className="spec-shots">
       {shots.length > 1 && (
-        <div className="spec-shot-tabs" role="group" aria-label={`${title} — screenshots`}>
+        <div className="spec-shot-tabs" role="group" aria-label={`${title}: ${t.shots}`}>
           {shots.map((s, i) => (
             <button
               key={s.src}
@@ -206,29 +375,78 @@ function Shots({ shots, title }: { shots: Shot[]; title: string }) {
               aria-pressed={i === active}
               onClick={() => setActive(i)}
             >
-              PL. {PLATE_LETTERS[i]} · {s.label}
+              <span className="spec-shot-tab-ref">{t.plate} {PLATE_LETTERS[i]}</span>
+              <span className="spec-shot-tab-label">{s.label[lang]}</span>
             </button>
           ))}
         </div>
       )}
 
       <figure className="spec-plate">
-        <div className="spec-plate-mount">
-          <Image
-            src={shot.src}
-            alt={shot.caption}
-            width={shot.width}
-            height={shot.height}
-            sizes="(max-width: 640px) 100vw, 1040px"
-            className="spec-plate-img"
-          />
+        <div
+          className="spec-plate-mount"
+          onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+          onTouchEnd={onTouchEnd}
+        >
+          <button type="button" className="spec-plate-zoom" aria-label={t.enlarge} onClick={() => setZoomed(true)}>
+            <Image
+              src={shot.src}
+              alt={shot.caption[lang]}
+              width={shot.width}
+              height={shot.height}
+              sizes="(max-width: 640px) 100vw, 1040px"
+              className="spec-plate-img"
+            />
+          </button>
         </div>
         <figcaption className="spec-plate-cap">
-          <span className="spec-plate-ref">PL. {PLATE_LETTERS[active]}</span>
-          {shot.caption}
+          <span className="spec-plate-ref">{t.plate} {PLATE_LETTERS[active]}</span>
+          {shot.caption[lang]}
         </figcaption>
       </figure>
+      {zoomed && <Viewer shot={shot} lang={lang} t={t} onClose={() => setZoomed(false)} />}
     </div>
+  );
+}
+
+/* Full-size plate on its own sheet. On a phone the landscape stills open at
+   their real width so the UI text is readable, and the sheet pans. */
+function Viewer({ shot, lang, t, onClose }: { shot: Shot; lang: Lang; t: Copy; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    d.showModal();
+    const body = d.querySelector<HTMLElement>(".spec-viewer-body");
+    if (body) body.scrollLeft = (body.scrollWidth - body.clientWidth) / 2;
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      className="spec-viewer"
+      aria-label={shot.caption[lang]}
+      onClose={onClose}
+      onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
+    >
+      <div className="spec-viewer-bar">
+        <span>{shot.label[lang]}</span>
+        <span className="spec-viewer-hint">{t.pan}</span>
+        <button type="button" onClick={() => ref.current?.close()}>{t.close} ✕</button>
+      </div>
+      <div className="spec-viewer-body">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={shot.src}
+          alt={shot.caption[lang]}
+          width={shot.width}
+          height={shot.height}
+          style={{ "--w": `${shot.width}px` } as React.CSSProperties}
+          className={shot.width > shot.height ? "is-wide" : undefined}
+        />
+      </div>
+    </dialog>
   );
 }
 
@@ -240,13 +458,13 @@ function soloPortrait(project: Project): Shot | null {
   return shot.height > shot.width ? shot : null;
 }
 
-function BarePlate({ shot }: { shot: Shot }) {
+function BarePlate({ shot, lang }: { shot: Shot; lang: Lang }) {
   return (
     <div className="spec-plate spec-plate--bare">
       <div className="spec-plate-mount">
         <Image
           src={shot.src}
-          alt={shot.caption}
+          alt={shot.caption[lang]}
           width={shot.width}
           height={shot.height}
           sizes="(max-width: 640px) 100vw, 320px"
@@ -257,14 +475,163 @@ function BarePlate({ shot }: { shot: Shot }) {
   );
 }
 
-function ProjectMedia({ project }: { project: Project }) {
+function ProjectMedia({ project, lang, t }: { project: Project; lang: Lang; t: Copy }) {
   if (project.media.kind === "shots") {
-    return <Shots shots={project.media.shots} title={project.title} />;
+    return <Shots shots={project.media.shots} title={project.title} lang={lang} t={t} />;
   }
   if (project.media.kind === "video") {
     return <YouTube videoId={project.media.videoId} title={project.title} />;
   }
+  if (project.media.kind === "diagram") {
+    return <SentinelDiagram lang={lang} />;
+  }
   return null;
+}
+
+/* Two-position switch set like the meta grid: hairline box, active cell inked. */
+function Switch<V extends string>({
+  label, value, options, onPick,
+}: {
+  label: string;
+  value: V;
+  options: { value: V; text: React.ReactNode; title?: string }[];
+  onPick: (v: V) => void;
+}) {
+  return (
+    <div className="spec-switch" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
+          aria-label={o.title}
+          title={o.title}
+          onClick={() => onPick(o.value)}
+        >
+          {o.text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* Sentinel drawn as a schematic sheet: AWS and GCP as dashed boundaries,
+   balloons keyed to the numbered NOTES beside it, and a title block. */
+const DG = {
+  en: {
+    aria: "Sentinel architecture: three ingress paths converge on one SQS queue, an AI enrichment Lambda scores each lead with a RAG tool over S3 Vectors and a deterministic calculator, results land in DynamoDB and stream to BigQuery and back to HubSpot.",
+    crm: "HubSpot CRM", client: "API client", reconcile: "reconcile", visibility: "300 s visibility",
+    after3: "after 3", similar: "similar profiles", query: "query", context: "score · tier · RAG context",
+    writeback: "contact write-back", title: "lead enrichment", sheet: "SHEET 1/1",
+  },
+  pt: {
+    aria: "Arquitetura do Sentinel: três entradas convergem numa fila SQS, uma Lambda de enriquecimento pontua cada lead com uma ferramenta RAG sobre o S3 Vectors e uma calculadora determinística, o resultado vai para o DynamoDB e segue em stream para o BigQuery e de volta ao HubSpot.",
+    crm: "HubSpot CRM", client: "cliente da API", reconcile: "reconciliação", visibility: "visibilidade 300 s",
+    after3: "após 3", similar: "perfis similares", query: "consulta", context: "nota · tier · contexto RAG",
+    writeback: "write-back no contato", title: "enriquecimento de leads", sheet: "FOLHA 1/1",
+  },
+};
+
+function DgBox({ x, y, w, h, title, lines = [], accent }: {
+  x: number; y: number; w: number; h: number; title: string; lines?: string[]; accent?: boolean;
+}) {
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} className={accent ? "dg-box dg-box--accent" : "dg-box"} />
+      <text x={x + 9} y={y + 16} className="dg-title">{title}</text>
+      {lines.map((l, i) => (
+        <text key={i} x={x + 9} y={y + 29 + i * 12} className="dg-sub">{l}</text>
+      ))}
+    </g>
+  );
+}
+
+function Balloon({ x, y, n }: { x: number; y: number; n: number }) {
+  return (
+    <g>
+      <circle cx={x} cy={y} r={8} className="dg-balloon" />
+      <text x={x} y={y + 3.2} className="dg-balloon-num">{n}</text>
+    </g>
+  );
+}
+
+function SentinelDiagram({ lang }: { lang: Lang }) {
+  const d = DG[lang];
+  return (
+    <div className="spec-diagram">
+      <svg viewBox="0 0 360 640" role="img" aria-label={d.aria}>
+        <defs>
+          <marker id="dg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 z" className="dg-arrowhead" />
+          </marker>
+        </defs>
+
+        <rect x="0.5" y="0.5" width="359" height="639" className="dg-frame" />
+
+        {/* outside the stack */}
+        <text x="122" y="22" className="dg-ext">{d.crm}</text>
+        <text x="296" y="22" className="dg-ext">{d.client}</text>
+        <path d="M64 40 V31 H180 V40" className="dg-line" />
+        {[64, 180].map((x) => (
+          <path key={x} d={`M${x} 40 V64`} className="dg-line" markerEnd="url(#dg-arrow)" />
+        ))}
+        <path d="M296 28 V64" className="dg-line" markerEnd="url(#dg-arrow)" />
+
+        {/* AWS boundary */}
+        <rect x="6" y="48" width="348" height="434" className="dg-zone" />
+        <text x="14" y="476" className="dg-zone-label">AWS · SAM</text>
+
+        <DgBox x={12}  y={66} w={104} h={52} title="webhook λ" lines={["HubSpot", "HMAC v3"]} />
+        <DgBox x={128} y={66} w={104} h={52} title="poll λ"    lines={["EventBridge", d.reconcile]} />
+        <DgBox x={244} y={66} w={104} h={52} title="ingest λ"  lines={["POST /leads", "API key"]} />
+
+        <path d="M64 118 V150 H296 V118 M180 118 V150" className="dg-line" />
+        <path d="M180 150 V170" className="dg-line" markerEnd="url(#dg-arrow)" />
+        <circle cx="180" cy="150" r="2.5" className="dg-node" />
+        <Balloon x={204} y={161} n={2} />
+
+        <DgBox x={100} y={172} w={160} h={44} title="SQS · leads" lines={[d.visibility]} />
+        <path d="M260 194 H298" className="dg-line dg-line--dashed" markerEnd="url(#dg-arrow)" />
+        <text x="279" y="189" className="dg-edge">{d.after3}</text>
+        <DgBox x={300} y={178} w={48} h={32} title="DLQ" lines={["14 d"]} />
+
+        <path d="M180 216 V242" className="dg-line" markerEnd="url(#dg-arrow)" />
+
+        <DgBox x={12} y={244} w={336} h={118} title="AI enrichment λ" lines={["LangChain ReAct · Gemini 2.5 Flash"]} accent />
+        <DgBox x={24}  y={292} w={152} h={56} title="rag_tool"        lines={[d.similar, "cosine · 1024-d"]} />
+        <DgBox x={184} y={292} w={152} h={56} title="calculator_tool" lines={["score 0–100", "VIP · HOT · COLD"]} />
+        <Balloon x={336} y={292} n={1} />
+
+        <path d="M100 348 V372" className="dg-line dg-line--dashed" markerEnd="url(#dg-arrow)" />
+        <text x="106" y="371" className="dg-edge dg-edge--start">{d.query}</text>
+        <DgBox x={24} y={374} w={140} h={34} title="S3 Vectors" lines={["gemini-embedding"]} />
+
+        <path d="M260 362 V424" className="dg-line" markerEnd="url(#dg-arrow)" />
+        <DgBox x={172} y={426} w={176} h={44} title="DynamoDB · leads" lines={[d.context]} />
+
+        <path d="M260 470 V500 M90 500 H260" className="dg-line" />
+        {[90, 260].map((x) => (
+          <path key={x} d={`M${x} 500 V522`} className="dg-line" markerEnd="url(#dg-arrow)" />
+        ))}
+        <circle cx="260" cy="500" r="2.5" className="dg-node" />
+        <text x="252" y="492" className="dg-edge dg-edge--end">streams</text>
+        <Balloon x={282} y={487} n={3} />
+
+        {/* GCP boundary */}
+        <rect x="6" y="514" width="168" height="72" className="dg-zone" />
+        <text x="14" y="581" className="dg-zone-label">GCP</text>
+        <Balloon x={174} y={514} n={4} />
+        <DgBox x={12}  y={524} w={156} h={44} title="BigQuery" lines={["→ Looker Studio"]} />
+        <DgBox x={192} y={524} w={156} h={44} title="HubSpot"  lines={[d.writeback]} />
+
+        {/* title block */}
+        <path d="M6 596 H354 V634 H6 Z M122 596 V634 M282 596 V634" className="dg-titleblock" />
+        <text x="16" y="619" className="dg-tb-name">SENTINEL</text>
+        <text x="132" y="619" className="dg-sub">{d.title}</text>
+        <text x="292" y="619" className="dg-sub">{d.sheet}</text>
+      </svg>
+    </div>
+  );
 }
 
 /* ============================================================
@@ -278,20 +645,58 @@ const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
   WIP:           "var(--red)",
 };
 
+const SECTION_IDS = ["identity", "work", "contact"];
+
 export default function Home() {
   useReveal();
+  const { lang, theme, pickLang, pickTheme } = usePrefs();
+  const t = UI[lang];
+  const active = useActiveSection(SECTION_IDS);
+  const sections = [
+    { id: "identity", num: "§1", label: t.navIdentity },
+    { id: "work",     num: "§2", label: t.navWork },
+    { id: "contact",  num: "§3", label: t.navContact },
+  ];
 
   return (
     <div className="theme-spec">
       <nav className="spec-nav">
         <div className="spec-nav-inner">
-          <span style={{ fontWeight: 700 }}>APV—PORTFOLIO</span>
+          <span style={{ fontWeight: 700 }}>APV/PORTFOLIO</span>
           <div className="spec-nav-links">
-            <a href="#identity">§1 IDENTITY</a>
-            <a href="#work">§2 WORK</a>
-            <a href="#contact">§3 CONTACT</a>
+            {sections.map((s) => (
+              <a key={s.id} href={`#${s.id}`} aria-current={active === s.id ? "location" : undefined}>
+                {s.num} {s.label}
+              </a>
+            ))}
           </div>
-          <span style={{ color: "var(--faint)" }}>REV. 2026.08</span>
+          <div className="spec-nav-controls">
+            <Switch
+              label={t.language}
+              value={lang}
+              onPick={pickLang}
+              options={[
+                { value: "en", text: "EN", title: "English" },
+                { value: "pt", text: "PT", title: "Português (Brasil)" },
+              ]}
+            />
+            <Switch
+              label={t.theme}
+              value={theme}
+              onPick={pickTheme}
+              options={[
+                { value: "light", text: <span className="spec-swatch spec-swatch--light" />, title: t.light },
+                { value: "dark",  text: <span className="spec-swatch spec-swatch--dark" />,  title: t.dark },
+              ]}
+            />
+          </div>
+        </div>
+        <div className="spec-nav-index">
+          {sections.map((s) => (
+            <a key={s.id} href={`#${s.id}`} aria-current={active === s.id ? "location" : undefined}>
+              <span>{s.num}</span> {s.label}
+            </a>
+          ))}
         </div>
       </nav>
 
@@ -307,11 +712,11 @@ export default function Home() {
           <div style={{ margin: "clamp(28px, 4vw, 44px) 0 0" }}>
             <dl className="spec-meta">
               <div>
-                <dt>ROLE</dt>
-                <dd>{ME.role}</dd>
+                <dt>{t.role}</dt>
+                <dd>{t.roleValue}</dd>
               </div>
               <div>
-                <dt>MAINTAINER</dt>
+                <dt>{t.maintainer}</dt>
                 <dd>{ME.handle}</dd>
               </div>
             </dl>
@@ -322,9 +727,9 @@ export default function Home() {
         <section id="identity" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§1</span>
-            <h2 className="spec-sec-title">Identity</h2>
+            <h2 className="spec-sec-title">{t.identity}</h2>
           </div>
-          {ABOUT.map((line, i) => (
+          {ABOUT[lang].map((line, i) => (
             <div key={i} className="spec-clause reveal">
               <span className="spec-clause-num">1.{i + 1}</span>
               <p>{line}</p>
@@ -336,34 +741,35 @@ export default function Home() {
         <section id="work" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§2</span>
-            <h2 className="spec-sec-title">Shipped work</h2>
+            <h2 className="spec-sec-title">{t.work}</h2>
           </div>
           {PROJECTS.map((p) => {
             const solo = soloPortrait(p);
+            const aside = solo || p.media.kind === "diagram";
             return (
-              <figure key={p.id} className={`spec-fig reveal${solo ? " spec-fig--aside" : ""}`}>
+              <figure key={p.id} className={`spec-fig reveal${aside ? " spec-fig--aside" : ""}`}>
                 <figcaption className="spec-fig-caption">
                   <span className="spec-fig-num">FIG. {p.id}</span>
                   <span className="spec-fig-title">{p.title}</span>
                   {p.status && (
                     <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
-                      {p.status}
+                      {t.status[p.status]}
                     </span>
                   )}
                   {p.links?.map((l) => (
                     <a key={l.href} className="spec-fig-link" href={l.href} target="_blank" rel="noreferrer">
-                      {l.label} ↗
+                      {t.links[l.kind]} ↗
                     </a>
                   ))}
                   <span className="spec-fig-year">{p.year}</span>
                 </figcaption>
                 <div className="spec-fig-body">
-                  {solo ? <BarePlate shot={solo} /> : <ProjectMedia project={p} />}
+                  {solo ? <BarePlate shot={solo} lang={lang} /> : <ProjectMedia project={p} lang={lang} t={t} />}
                   <div>
-                    {solo && <p className="spec-plate-note">{solo.caption}</p>}
-                    <p className="spec-fig-desc">{p.summary}</p>
-                    <ol className="spec-notes" aria-label={`${p.title} — engineering notes`}>
-                      {p.notes.map((n, i) => (
+                    {solo && <p className="spec-plate-note">{solo.caption[lang]}</p>}
+                    <p className="spec-fig-desc">{p.summary[lang]}</p>
+                    <ol className="spec-notes" data-label={t.notes} aria-label={`${p.title}: ${t.engNotes}`}>
+                      {p.notes[lang].map((n, i) => (
                         <li key={i}>
                           <span className="spec-note-num">{i + 1}.</span>
                           {n}
@@ -371,8 +777,8 @@ export default function Home() {
                       ))}
                     </ol>
                     <ul className="spec-tools">
-                      {p.tools.map((t) => (
-                        <li key={t} className="spec-tool">{t}</li>
+                      {p.tools.map((tool) => (
+                        <li key={tool} className="spec-tool">{tool}</li>
                       ))}
                     </ul>
                   </div>
@@ -386,7 +792,7 @@ export default function Home() {
         <section id="contact" className="spec-sec">
           <div className="spec-sec-head reveal">
             <span className="spec-sec-num">§3</span>
-            <h2 className="spec-sec-title">Contact</h2>
+            <h2 className="spec-sec-title">{t.contact}</h2>
           </div>
           <div className="reveal">
             {[
@@ -394,18 +800,27 @@ export default function Home() {
               { label: "GITHUB",   href: `https://${ME.github}`,      text: ME.github   },
               { label: "LINKEDIN", href: `https://${ME.linkedin}`,    text: ME.linkedin },
             ].map((ref, i) => (
-              <div key={ref.label} className="spec-ref">
+              <a
+                key={ref.label}
+                className="spec-ref"
+                href={ref.href}
+                target={ref.label === "EMAIL" ? undefined : "_blank"}
+                rel="noreferrer"
+              >
                 <span className="spec-ref-num">[{i + 1}]</span>
                 <span className="spec-ref-label">{ref.label}</span>
-                <a href={ref.href} target={ref.label === "EMAIL" ? undefined : "_blank"} rel="noreferrer">
-                  {ref.text}
-                </a>
-              </div>
+                {/* break long handles at their slashes, never mid-word */}
+                <span className="spec-ref-value">
+                  {ref.text.split("/").map((part, j) => (
+                    <span key={j}>{j > 0 && <>/<wbr /></>}{part}</span>
+                  ))}
+                </span>
+              </a>
             ))}
           </div>
         </section>
 
-        <footer className="spec-footer">APV—PORTFOLIO · REV. 2026.08</footer>
+        <footer className="spec-footer">APV/PORTFOLIO · REV. 2026.10</footer>
       </div>
     </div>
   );
