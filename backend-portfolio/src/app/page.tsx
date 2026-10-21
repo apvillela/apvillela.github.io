@@ -235,6 +235,7 @@ const UI = {
     status: { PRODUCTION: "PRODUCTION", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARCHIVED", WIP: "WIP" },
     enlarge: "Enlarge screenshot", close: "Close", pan: "Drag to pan",
     language: "Language", theme: "Theme", light: "Paper", dark: "Blueprint",
+    skip: "Skip to content", newTab: "opens in a new tab",
   },
   pt: {
     identity: "Identidade", work: "Trabalho entregue", contact: "Contato",
@@ -245,6 +246,7 @@ const UI = {
     status: { PRODUCTION: "EM PRODUÇÃO", "OPEN SOURCE": "OPEN SOURCE", ARCHIVED: "ARQUIVADO", WIP: "EM ANDAMENTO" },
     enlarge: "Ampliar captura", close: "Fechar", pan: "Arraste para mover",
     language: "Idioma", theme: "Tema", light: "Papel", dark: "Planta",
+    skip: "Pular para o conteúdo", newTab: "abre em nova aba",
   },
 };
 
@@ -253,24 +255,6 @@ type Copy = (typeof UI)["en"];
 /* ============================================================
    HELPERS
    ============================================================ */
-
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll<HTMLElement>(".reveal");
-    const observer = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            (e.target as HTMLElement).classList.add("in-view");
-            observer.unobserve(e.target);
-          }
-        }),
-      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-}
 
 /* Which section sits under the reading line, for the mobile index strip. */
 function useActiveSection(ids: string[]) {
@@ -433,7 +417,7 @@ function Viewer({ shot, lang, t, onClose }: { shot: Shot; lang: Lang; t: Copy; o
       <div className="spec-viewer-bar">
         <span>{shot.label[lang]}</span>
         <span className="spec-viewer-hint">{t.pan}</span>
-        <button type="button" onClick={() => ref.current?.close()}>{t.close} ✕</button>
+        <button type="button" onClick={() => ref.current?.close()}>{t.close} <span aria-hidden="true">✕</span></button>
       </div>
       <div className="spec-viewer-body">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -494,7 +478,7 @@ function Switch<V extends string>({
 }: {
   label: string;
   value: V;
-  options: { value: V; text: React.ReactNode; title?: string }[];
+  options: { value: V; text: React.ReactNode; name?: string; title?: string }[];
   onPick: (v: V) => void;
 }) {
   return (
@@ -504,7 +488,7 @@ function Switch<V extends string>({
           key={o.value}
           type="button"
           aria-pressed={o.value === value}
-          aria-label={o.title}
+          aria-label={o.name}
           title={o.title}
           onClick={() => onPick(o.value)}
         >
@@ -648,7 +632,6 @@ const STATUS_COLOR: Record<NonNullable<Project["status"]>, string> = {
 const SECTION_IDS = ["identity", "work", "contact"];
 
 export default function Home() {
-  useReveal();
   const { lang, theme, pickLang, pickTheme } = usePrefs();
   const t = UI[lang];
   const active = useActiveSection(SECTION_IDS);
@@ -660,6 +643,7 @@ export default function Home() {
 
   return (
     <div className="theme-spec">
+      <a className="spec-skip" href="#main">{t.skip}</a>
       <nav className="spec-nav">
         <div className="spec-nav-inner">
           <span style={{ fontWeight: 700 }}>APV/PORTFOLIO</span>
@@ -676,8 +660,8 @@ export default function Home() {
               value={lang}
               onPick={pickLang}
               options={[
-                { value: "en", text: "EN", title: "English" },
-                { value: "pt", text: "PT", title: "Português (Brasil)" },
+                { value: "en", text: <>EN<span className="sr-only">, English</span></>, title: "English" },
+                { value: "pt", text: <>PT<span className="sr-only">, Português (Brasil)</span></>, title: "Português (Brasil)" },
               ]}
             />
             <Switch
@@ -685,8 +669,8 @@ export default function Home() {
               value={theme}
               onPick={pickTheme}
               options={[
-                { value: "light", text: <span className="spec-swatch spec-swatch--light" />, title: t.light },
-                { value: "dark",  text: <span className="spec-swatch spec-swatch--dark" />,  title: t.dark },
+                { value: "light", text: <span className="spec-swatch spec-swatch--light" />, name: t.light, title: t.light },
+                { value: "dark",  text: <span className="spec-swatch spec-swatch--dark" />,  name: t.dark,  title: t.dark },
               ]}
             />
           </div>
@@ -701,124 +685,129 @@ export default function Home() {
       </nav>
 
       <div className="spec-frame">
-        {/* Masthead */}
-        <header style={{ padding: "clamp(48px, 8vw, 96px) 0 clamp(40px, 6vw, 64px)" }}>
-          <h1 className="spec-h1">
-            Alexandre
-            <br />
-            Villela
-          </h1>
+        <main id="main">
+          {/* Masthead */}
+          <header style={{ padding: "clamp(48px, 8vw, 96px) 0 clamp(40px, 6vw, 64px)" }}>
+            <h1 className="spec-h1">
+              Alexandre
+              <br />
+              Villela
+            </h1>
 
-          <div style={{ margin: "clamp(28px, 4vw, 44px) 0 0" }}>
-            <dl className="spec-meta">
-              <div>
-                <dt>{t.role}</dt>
-                <dd>{t.roleValue}</dd>
-              </div>
-              <div>
-                <dt>{t.maintainer}</dt>
-                <dd>{ME.handle}</dd>
-              </div>
-            </dl>
-          </div>
-        </header>
-
-        {/* §1 Identity */}
-        <section id="identity" className="spec-sec">
-          <div className="spec-sec-head reveal">
-            <span className="spec-sec-num">§1</span>
-            <h2 className="spec-sec-title">{t.identity}</h2>
-          </div>
-          {ABOUT[lang].map((line, i) => (
-            <div key={i} className="spec-clause reveal">
-              <span className="spec-clause-num">1.{i + 1}</span>
-              <p>{line}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* §2 Work */}
-        <section id="work" className="spec-sec">
-          <div className="spec-sec-head reveal">
-            <span className="spec-sec-num">§2</span>
-            <h2 className="spec-sec-title">{t.work}</h2>
-          </div>
-          {PROJECTS.map((p) => {
-            const solo = soloPortrait(p);
-            const aside = solo || p.media.kind === "diagram";
-            return (
-              <figure key={p.id} className={`spec-fig reveal${aside ? " spec-fig--aside" : ""}`}>
-                <figcaption className="spec-fig-caption">
-                  <span className="spec-fig-num">FIG. {p.id}</span>
-                  <span className="spec-fig-title">{p.title}</span>
-                  {p.status && (
-                    <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
-                      {t.status[p.status]}
-                    </span>
-                  )}
-                  {p.links?.map((l) => (
-                    <a key={l.href} className="spec-fig-link" href={l.href} target="_blank" rel="noreferrer">
-                      {t.links[l.kind]} ↗
-                    </a>
-                  ))}
-                  <span className="spec-fig-year">{p.year}</span>
-                </figcaption>
-                <div className="spec-fig-body">
-                  {solo ? <BarePlate shot={solo} lang={lang} /> : <ProjectMedia project={p} lang={lang} t={t} />}
-                  <div>
-                    {solo && <p className="spec-plate-note">{solo.caption[lang]}</p>}
-                    <p className="spec-fig-desc">{p.summary[lang]}</p>
-                    <ol className="spec-notes" data-label={t.notes} aria-label={`${p.title}: ${t.engNotes}`}>
-                      {p.notes[lang].map((n, i) => (
-                        <li key={i}>
-                          <span className="spec-note-num">{i + 1}.</span>
-                          {n}
-                        </li>
-                      ))}
-                    </ol>
-                    <ul className="spec-tools">
-                      {p.tools.map((tool) => (
-                        <li key={tool} className="spec-tool">{tool}</li>
-                      ))}
-                    </ul>
-                  </div>
+            <div style={{ margin: "clamp(28px, 4vw, 44px) 0 0" }}>
+              <dl className="spec-meta">
+                <div>
+                  <dt>{t.role}</dt>
+                  <dd>{t.roleValue}</dd>
                 </div>
-              </figure>
-            );
-          })}
-        </section>
+                <div>
+                  <dt>{t.maintainer}</dt>
+                  <dd>{ME.handle}</dd>
+                </div>
+              </dl>
+            </div>
+          </header>
 
-        {/* §3 Contact */}
-        <section id="contact" className="spec-sec">
-          <div className="spec-sec-head reveal">
-            <span className="spec-sec-num">§3</span>
-            <h2 className="spec-sec-title">{t.contact}</h2>
-          </div>
-          <div className="reveal">
-            {[
-              { label: "EMAIL",    href: `mailto:${ME.email}`,        text: ME.email    },
-              { label: "GITHUB",   href: `https://${ME.github}`,      text: ME.github   },
-              { label: "LINKEDIN", href: `https://${ME.linkedin}`,    text: ME.linkedin },
-            ].map((ref, i) => (
-              <a
-                key={ref.label}
-                className="spec-ref"
-                href={ref.href}
-                target={ref.label === "EMAIL" ? undefined : "_blank"}
-                rel="noreferrer"
-              >
-                <span className="spec-ref-num">[{i + 1}]</span>
-                <span className="spec-ref-label">{ref.label}</span>
-                {/* break long handles at their slashes, never mid-word */}
-                <span className="spec-ref-value">
-                  {ref.text.split("/").map((part, j) => (
-                    <span key={j}>{j > 0 && <>/<wbr /></>}{part}</span>
-                  ))}
-                </span>
-              </a>
+          {/* §1 Identity */}
+          <section id="identity" className="spec-sec">
+            <div className="spec-sec-head reveal">
+              <span className="spec-sec-num">§1</span>
+              <h2 className="spec-sec-title">{t.identity}</h2>
+            </div>
+            {ABOUT[lang].map((line, i) => (
+              <div key={i} className="spec-clause reveal">
+                <span className="spec-clause-num">1.{i + 1}</span>
+                <p>{line}</p>
+              </div>
             ))}
-          </div>
-        </section>
+          </section>
+
+          {/* §2 Work */}
+          <section id="work" className="spec-sec">
+            <div className="spec-sec-head reveal">
+              <span className="spec-sec-num">§2</span>
+              <h2 className="spec-sec-title">{t.work}</h2>
+            </div>
+            {PROJECTS.map((p) => {
+              const solo = soloPortrait(p);
+              const aside = solo || p.media.kind === "diagram";
+              return (
+                <figure key={p.id} className={`spec-fig reveal${aside ? " spec-fig--aside" : ""}`}>
+                  <figcaption className="spec-fig-caption">
+                    <span className="spec-fig-num">FIG. {p.id}</span>
+                    <h3 className="spec-fig-title">{p.title}</h3>
+                    {p.status && (
+                      <span className="spec-status" style={{ color: STATUS_COLOR[p.status] }}>
+                        {t.status[p.status]}
+                      </span>
+                    )}
+                    {p.links?.map((l) => (
+                      <a key={l.href} className="spec-fig-link" href={l.href} target="_blank" rel="noreferrer">
+                        {t.links[l.kind]} <span aria-hidden="true">↗</span>
+                        <span className="sr-only">({t.newTab})</span>
+                      </a>
+                    ))}
+                    <span className="spec-fig-year">{p.year}</span>
+                  </figcaption>
+                  <div className="spec-fig-body">
+                    {solo ? <BarePlate shot={solo} lang={lang} /> : <ProjectMedia project={p} lang={lang} t={t} />}
+                    <div>
+                      {solo && <p className="spec-plate-note">{solo.caption[lang]}</p>}
+                      <p className="spec-fig-desc">{p.summary[lang]}</p>
+                      <ol className="spec-notes" data-label={t.notes} aria-label={`${p.title}: ${t.engNotes}`}>
+                        {p.notes[lang].map((n, i) => (
+                          <li key={i}>
+                            <span className="spec-note-num">{i + 1}.</span>
+                            {n}
+                          </li>
+                        ))}
+                      </ol>
+                      <ul className="spec-tools">
+                        {p.tools.map((tool) => (
+                          <li key={tool} className="spec-tool">{tool}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </figure>
+              );
+            })}
+          </section>
+
+          {/* §3 Contact */}
+          <section id="contact" className="spec-sec">
+            <div className="spec-sec-head reveal">
+              <span className="spec-sec-num">§3</span>
+              <h2 className="spec-sec-title">{t.contact}</h2>
+            </div>
+            <div className="reveal">
+              {[
+                { label: "EMAIL",    href: `mailto:${ME.email}`,        text: ME.email    },
+                { label: "GITHUB",   href: `https://${ME.github}`,      text: ME.github   },
+                { label: "LINKEDIN", href: `https://${ME.linkedin}`,    text: ME.linkedin },
+              ].map((ref, i) => (
+                <a
+                  key={ref.label}
+                  className="spec-ref"
+                  href={ref.href}
+                  target={ref.label === "EMAIL" ? undefined : "_blank"}
+                  rel="noreferrer"
+                >
+                  <span className="spec-ref-num">[{i + 1}]</span>
+                  <span className="spec-ref-label">{ref.label}</span>
+                  {/* break long handles at their slashes, never mid-word */}
+                  <span className="spec-ref-value">
+                    {ref.text.split("/").map((part, j) => (
+                      <span key={j}>{j > 0 && <>/<wbr /></>}{part}</span>
+                    ))}
+                  </span>
+                  {ref.label !== "EMAIL" && <span className="sr-only">({t.newTab})</span>}
+                </a>
+              ))}
+            </div>
+          </section>
+
+        </main>
 
         <footer className="spec-footer">APV/PORTFOLIO · REV. 2026.10</footer>
       </div>
